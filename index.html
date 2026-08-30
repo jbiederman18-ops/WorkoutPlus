@@ -1088,7 +1088,10 @@ const defaultState = () => ({
   logs:{}         // slot id -> { load, date, week, day }
 });
 
-const TOTAL_SESSIONS = 4 * 6;
+/* Weekends are a walk and some mobility. They're worth logging, but they
+   shouldn't decide whether a training block counts as finished. */
+const TRAINING_DAYS = DAYS.filter(d => d.key !== "Weekend");
+const TOTAL_SESSIONS = 4 * TRAINING_DAYS.length;
 
 /* Completion is scoped to a block so a new cycle starts with a clean board,
    while state.logs — the load history — is deliberately never touched. */
@@ -1096,7 +1099,7 @@ function doneKey(week, day){ return "b" + state.block + "-w" + week + "-" + day;
 
 function blockIsComplete(){
   for(let w=1; w<=4; w++){
-    for(const d of DAYS) if(!state.completed[doneKey(w, d.key)]) return false;
+    for(const d of TRAINING_DAYS) if(!state.completed[doneKey(w, d.key)]) return false;
   }
   return true;
 }
@@ -1119,7 +1122,8 @@ function migrateBlocks(){
     delete state.completed[k];
   });
   // A finished on-ramp rolls straight into block 2 with a clean board.
-  if(legacy.length >= TOTAL_SESSIONS && state.block === 1) state.block = 2;
+  const weekdays = legacy.filter(k => !k.endsWith("-Weekend")).length;
+  if(weekdays >= TOTAL_SESSIONS && state.block === 1) state.block = 2;
   saveState();
 }
 
@@ -1444,7 +1448,7 @@ function buildTabs(){
   });
 }
 
-const weekIsComplete = w => DAYS.every(d => state.completed[doneKey(w, d.key)]);
+const weekIsComplete = w => TRAINING_DAYS.every(d => state.completed[doneKey(w, d.key)]);
 const dayIsComplete = (w,d) => Boolean(state.completed[doneKey(w, d)]);
 
 function renderTabs(){
@@ -1892,6 +1896,7 @@ function finishWorkout(){
 
   state.completed[doneKey(currentWeek, currentDay)] = todayISO();
   state.week = currentWeek;
+  const finishedBlock = blockIsComplete() ? state.block : 0;
   saveState();
 
   const data = dayData(currentWeek, currentDay);
@@ -1899,9 +1904,9 @@ function finishWorkout(){
   const sets = sequence.filter(s => s.kind === "work").length;
 
   el.doneTitle.textContent = data.title + " Done";
-  el.doneSub.textContent = blockIsComplete()
-    ? "Block " + state.block + " is done. Open the Spine Rules sheet to start block " +
-      (state.block + 1) + " — your logged loads carry over."
+  el.doneSub.textContent = finishedBlock
+    ? "Block " + finishedBlock + " complete. Block " + (finishedBlock + 1) +
+      " starts now — every load you've logged carries over."
     : "Block " + state.block + " · Week " + currentWeek + " · " +
       (currentDay === "Weekend" ? "Weekend" : currentDay) +
       " — another session your back stayed happy through.";
@@ -1910,9 +1915,18 @@ function finishWorkout(){
   el.statStreak.textContent = streakDays();
 
   buildLogForm(data);
+
+  // Roll straight into the next block rather than making it a manual step.
+  if(finishedBlock){
+    startNextBlock();
+    currentWeek = 1;
+  }
+
   renderStreak();
   showView("done");
-  el.live.textContent = "Workout complete.";
+  el.live.textContent = finishedBlock
+    ? "Workout complete. Block " + finishedBlock + " finished."
+    : "Workout complete.";
 }
 
 function buildLogForm(data){

@@ -658,6 +658,7 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
   background:var(--ink);color:var(--paper-2);
   border:2px solid var(--paper-2);
   font-family:var(--display);font-size:17px;letter-spacing:.04em;
+  white-space:nowrap;
   opacity:0;pointer-events:none;
   transition:opacity .18s,transform .18s;
 }
@@ -712,6 +713,7 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
   <symbol id="i-prev" viewBox="0 0 24 24"><path d="M19 20L9 12l10-8v16z" fill="currentColor" stroke="none"/><path d="M5 5v14"/></symbol>
   <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 4l10 8-10 8V4z" fill="currentColor" stroke="none"/><path d="M19 5v14"/></symbol>
   <symbol id="i-vol-on" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+  <symbol id="i-vol-mix" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M17 17V7l5-1.5v10"/><circle cx="15.5" cy="17" r="1.5"/><circle cx="20.5" cy="15.5" r="1.5"/></symbol>
   <symbol id="i-vol-off" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
@@ -813,8 +815,9 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
           <div id="run-count" class="runbar__count">—</div>
           <div id="run-left" class="runbar__left">—</div>
         </div>
-        <button id="sound-btn" class="minibtn" aria-pressed="true" aria-label="Sound on">
+        <button id="sound-btn" class="minibtn" aria-label="Sound: loud">
           <svg id="sound-icon" class="icon" aria-hidden="true"><use href="#i-vol-on"/></svg>
+          <span id="sound-label">Loud</span>
         </button>
       </div>
       <div id="timeline" class="timeline" aria-hidden="true"></div>
@@ -1095,6 +1098,7 @@ const defaultState = () => ({
   week:1,
   block:1,
   sound:true,
+  soundMode:"loud",  // "loud" | "mix" | "off"
   haptics:true,
   completed:{},   // "b1-w1-Mon" -> "2026-08-10"
   logs:{}         // slot id -> { load, date, week, day }
@@ -1142,8 +1146,15 @@ let state = defaultState();
 function loadState(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
-    if(raw) state = Object.assign(defaultState(), JSON.parse(raw));
+    if(raw){
+      const saved = JSON.parse(raw);
+      state = Object.assign(defaultState(), saved);
+      // Older saves only had an on/off boolean.
+      if(!saved.soundMode) state.soundMode = saved.sound === false ? "off" : "loud";
+    }
   }catch(e){ /* storage unavailable or corrupt — carry on with defaults */ }
+  if(!SOUND_MODES[state.soundMode]) state.soundMode = "loud";
+  state.sound = state.soundMode !== "off";
 }
 function saveState(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
@@ -1356,6 +1367,7 @@ const el = {
   exitBtn:  $("exit-btn"),
   soundBtn: $("sound-btn"),
   soundIcon:$("sound-icon").querySelector("use"),
+  soundLabel:$("sound-label"),
   prevBtn:  $("prev-btn"),
   prevLabel:$("prev-label"),
   pauseBtn: $("pause-btn"),
@@ -1412,7 +1424,7 @@ function unlockAudio(){
   if(!state.sound) return audioCtx;
   const AC = window.AudioContext || window.webkitAudioContext;
   if(!AC) return null;
-  setAudioSession("playback");
+  setAudioSession(SOUND_MODES[state.soundMode].session);
   if(!audioCtx || audioCtx.state === "closed"){
     try{ audioCtx = new AC(); }catch(e){ audioCtx = null; return null; }
   }
@@ -1431,6 +1443,20 @@ function unlockAudio(){
 }
 
 function releaseAudio(){ setAudioSession("auto"); }
+
+/* Web pages can't ask iOS for "playback, but mix with others", so this is
+   a real choice: "playback" beats the silent switch but interrupts other
+   apps; "ambient" mixes over video/music but obeys the silent switch. */
+const SOUND_MODES = {
+  loud:{ session:"playback", icon:"#i-vol-on",  label:"Loud", next:"mix",
+         aria:"Sound: loud. Works on silent, pauses other audio.",
+         toast:"Loud · pauses other audio" },
+  mix: { session:"ambient",  icon:"#i-vol-mix", label:"Mix",  next:"off",
+         aria:"Sound: mix. Plays over other audio, needs ringer on.",
+         toast:"Mix · ringer must be on" },
+  off: { session:"auto",     icon:"#i-vol-off", label:"Off",  next:"loud",
+         aria:"Sound off.", toast:"Sound off" }
+};
 
 function playTone(ctx, freq, seconds, volume){
   const osc = ctx.createOscillator();
@@ -2226,12 +2252,19 @@ el.prevBtn.addEventListener("click", goBack);
 el.nextBtn.addEventListener("click", goNext);
 el.addBtn.addEventListener("click", addTime);
 
+function renderSoundBtn(){
+  const m = SOUND_MODES[state.soundMode];
+  el.soundIcon.setAttribute("href", m.icon);
+  el.soundLabel.textContent = m.label;
+  el.soundBtn.setAttribute("aria-label", m.aria);
+}
+
 el.soundBtn.addEventListener("click", () => {
-  state.sound = !state.sound;
+  state.soundMode = SOUND_MODES[state.soundMode].next;
+  state.sound = state.soundMode !== "off";
   saveState();
-  el.soundIcon.setAttribute("href", state.sound ? "#i-vol-on" : "#i-vol-off");
-  el.soundBtn.setAttribute("aria-pressed", state.sound ? "true" : "false");
-  el.soundBtn.setAttribute("aria-label", state.sound ? "Sound on" : "Sound off");
+  renderSoundBtn();
+  toast(SOUND_MODES[state.soundMode].toast);
   if(state.sound){ unlockAudio(); setTimeout(()=>beep(880, 0.12, 0.12), 60); }
   else releaseAudio();
 });
@@ -2312,8 +2345,7 @@ loadState();
 migrateBlocks();
 goToNextUp();
 
-el.soundIcon.setAttribute("href", state.sound ? "#i-vol-on" : "#i-vol-off");
-el.soundBtn.setAttribute("aria-pressed", state.sound ? "true" : "false");
+renderSoundBtn();
 el.ringFill.setAttribute("stroke-dasharray", RING_CIRCUMFERENCE.toFixed(2));
 
 buildTabs();

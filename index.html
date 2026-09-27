@@ -952,101 +952,106 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
 "use strict";
 
 /* =================================================================== *
- * 1. PROGRAM DATA
+ * 1. PROGRAM DATA — 4-day split
+ * Four sessions a week, each 30–33 minutes. There is no separate spine
+ * day any more: the McGill Big 3 open every session as a short primer,
+ * so the stabilisers get trained four times a week instead of once.
+ * Every major muscle group is hit twice a week (upper + full, lower +
+ * full), and conditioning runs as its own day plus short finishers.
  * =================================================================== */
-/* Sessions run in order on whatever day you get to them. The keys keep their
-   old weekday names so saved completions and load logs still line up. */
+/* Sessions run in order on whatever day you get to them. */
 const DAYS = [
-  { key:"Mon", label:"Upper", name:"Upper Body" },
-  { key:"Tue", label:"Lower", name:"Lower Body" },
-  { key:"Wed", label:"Spine", name:"Spine" },
-  { key:"Thu", label:"HIIT",  name:"HIIT" },
-  { key:"Fri", label:"Full",  name:"Full Body" }
+  { key:"Up",   label:"Upper",  name:"Upper Body" },
+  { key:"Lo",   label:"Lower",  name:"Lower Body" },
+  { key:"Full", label:"Full",   name:"Full Body" },
+  { key:"Cond", label:"Engine", name:"Conditioning" }
 ];
+
+const PLAN_ID = "4day";
 
 const ICONS = {
   strength:"i-dumbbell", cardio:"i-pulse", core:"i-core",
   legs:"i-legs", full:"i-flame", rest:"i-walk"
 };
 
-/* Each week runs the same five sessions. Only the working-set count changes,
-   because from block 2 onward the progression lever is load, not structure. */
+/* Each week runs the same four sessions. Only the working-set count changes,
+   because the progression lever is load, not structure. Week 4 lengthens the
+   primer holds as the spine-endurance retest. */
 const WEEK_PLAN = {
-  1:{ sets:3, progression:"Calibrate. Three working sets while you find the real weight for each rep range. The sets are much shorter now, so expect your old dumbbells to feel far too light." },
+  1:{ sets:3, progression:"Calibrate. Three working sets while you settle into four days a week. The suitcase carry, split squats and one-arm rows are new, so start them conservatively." },
   2:{ sets:4, progression:"Climb. Four working sets. Any lift where you hit the top of the rep range on every set gets the smallest increment you own next session." },
-  3:{ sets:4, progression:"Climb. Identical to week 2 on purpose — the only thing that should differ is the weight written in your log." },
-  4:{ sets:3, progression:"Consolidate. Hold your week 3 weights, drop back to three sets, and retest the Wednesday holds at the longer durations." }
+  3:{ sets:4, progression:"Climb. Identical to week 2 on purpose. The only thing that should change is the weight written in your log." },
+  4:{ sets:3, progression:"Consolidate. Hold your week 3 weights and drop back to three sets. The spine primer holds get longer this week as your endurance retest." }
 };
 
+/* The McGill Big 3, opening every session. Short holds before training
+   switch the stabilisers on without tiring them out ahead of the lifts. */
+const PRIMER = [
+  {name:"Cat-Camel & Hip Circles",desc:"Slow cat-camel cycles, then hip circles and ankle rocks",duration:75,rest:10,isWarmup:true,safetyTip:"A mobility primer, not a stretch. Stay well inside your range."},
+  {id:"p-curl",name:"McGill Curl-Ups",desc:"Hands under your lower back, one knee bent. Ten-second holds.",duration:40,rest:10,isPrimer:true,weekDuration:{4:60},safetyTip:"Don't lift your lower back off your hands. Minimal motion is enough."},
+  {id:"p-side",name:"Side Plank",desc:"From knees or feet, body in one straight line",duration:25,rest:10,perSide:true,isPrimer:true,weekDuration:{4:40},safetyTip:"Trains the quadratus lumborum, a key back stabiliser."},
+  {id:"p-bird",name:"Bird-Dogs",desc:"Opposite arm and leg, ten-second holds, alternate sides",duration:40,rest:15,isPrimer:true,weekDuration:{4:60},safetyTip:"Imagine balancing a glass of water on your lower back."}
+];
+
 const SESSIONS = {
-  Mon:{
-    title:"Upper Body Strength", focus:"Push, Pull & Anti-Rotation", icon:"strength",
-    desc:"Press and row alternate as a pair, then a straight overhead press. Short sets, real weight.",
-    safety:"Floor presses and supported rows eliminate shear force on your back.",
+  Up:{
+    title:"Upper Body Strength", focus:"Push, Pull & Carry", icon:"strength",
+    desc:"Spine primer, two antagonist pairs, then a three-minute boxing finisher.",
+    safety:"Floor presses, supported rows and a seated press keep shear force off your back.",
     steps:[
-      {name:"Dynamic Warm-Up",desc:"Arm circles, cat-camel cycles and thoracic rotations",duration:180,rest:15,isWarmup:true,safetyTip:"Move gently through cat-camel. Don't force a deep arch."},
+      ...PRIMER,
       {id:"u-press",name:"Dumbbell Floor Press",desc:"Keep your lower back flat against the floor",duration:30,rest:40,mainSets:true,superset:"A",reps:"8–10",safetyTip:"Pressing from the floor protects the lumbar spine completely."},
       {id:"u-row",name:"Chest-Supported Rows",desc:"Rest your chest on an incline bench or lean a hand on a chair",duration:30,rest:40,mainSets:true,superset:"A",reps:"8–10",safetyTip:"Supporting your upper body takes all pressure off the lower back."},
-      {id:"u-ohp",name:"Seated Overhead Press",desc:"Sit upright with your back flat against the chair",duration:30,rest:90,mainSets:true,reps:"8–10",safetyTip:"Seated posture stops you hyperextending under an overhead load."},
-      {id:"u-core",name:"Bird-Dogs",desc:"Slow, controlled opposite arm and leg extensions",duration:40,rest:60,rounds:3,safetyTip:"Squeeze the glute. Don't lift the leg above hip line."},
-      {name:"Supported Decompression",desc:"Doorframe chest stretch, then 90/90 breathing on your back",duration:180,rest:0,isCooldown:true,safetyTip:"Breathe into your ribcage to let the spinal muscles switch off."}
+      {id:"u-ohp",name:"Seated Overhead Press",desc:"Sit upright with your back flat against the chair",duration:30,rest:40,mainSets:true,superset:"B",reps:"8–10",safetyTip:"Seated posture stops you hyperextending under an overhead load."},
+      {id:"u-carry",name:"Suitcase Carry",desc:"One heavy dumbbell at your side. Switch hands halfway.",duration:40,rest:40,mainSets:true,superset:"B",effort:"Walked the full 40 seconds without leaning? Go heavier next session.",safetyTip:"Resist the lean. One-sided carries build side-to-side spine stability."},
+      {id:"c-1",name:"Shadow Boxing",desc:"Fast jabs and crosses with soft knees",duration:40,rest:20,rounds:3,safetyTip:"Pivot from your feet to protect hips and lower back."},
+      {name:"Supported Decompression",desc:"Doorframe chest stretch, then 90/90 breathing on your back",duration:120,rest:0,isCooldown:true,safetyTip:"Breathe into your ribcage to let the spinal muscles switch off."}
     ]
   },
 
-  Tue:{
+  Lo:{
     title:"Lower Body Strength", focus:"Legs & Glutes, No Axial Load", icon:"legs",
     desc:"Two heavy patterns straight, then lunges and hip thrusts paired to save time.",
     safety:"Box squats and reverse lunges keep strain off your back.",
     steps:[
-      {name:"Leg Warm-Up",desc:"Bodyweight hinges and glute bridges",duration:180,rest:15,isWarmup:true,safetyTip:"Prime the glutes so they do the work instead of your back."},
+      ...PRIMER,
       {id:"l-squat",name:"Goblet Box Squats",desc:"Squat down to a chair or bench contact point",duration:30,rest:90,mainSets:true,reps:"6–8",safetyTip:"Sitting to a box guarantees safe depth without rounding."},
       {id:"l-hinge",name:"Dumbbell Romanian Deadlifts",desc:"Hinge at the hips. Stop the weights at shin level.",duration:30,rest:90,mainSets:true,reps:"6–8",safetyTip:"Keep the weights hugging your legs. Never let the spine flex forward."},
-      {id:"l-lunge",name:"Reverse Lunges",desc:"Step backward into the lunge, alternating legs",duration:30,rest:40,mainSets:true,superset:"B",reps:"8–10",repNote:"per leg",safetyTip:"Stepping back reduces knee shear and keeps the spine vertical."},
-      {id:"l-glute",name:"Hip Thrusts",desc:"Upper back resting against a couch or bench",duration:40,rest:40,mainSets:true,superset:"B",reps:"10–12",safetyTip:"The gold-standard glute exercise. No axial load on the spine."},
-      {name:"Lower Body Stretch",desc:"Figure-4 stretch and standing quad release",duration:180,rest:0,isCooldown:true,safetyTip:"Releases tight hips that drag on your pelvic posture."}
+      {id:"l-lunge",name:"Reverse Lunges",desc:"Step backward into the lunge, alternating legs",duration:30,rest:40,mainSets:true,superset:"A",reps:"8–10",repNote:"per leg",safetyTip:"Stepping back reduces knee shear and keeps the spine vertical."},
+      {id:"l-glute",name:"Hip Thrusts",desc:"Upper back resting against a couch or bench",duration:40,rest:40,mainSets:true,superset:"A",reps:"10–12",safetyTip:"The gold-standard glute exercise. No axial load on the spine."},
+      {name:"Lower Body Stretch",desc:"Figure-4 stretch and standing quad release",duration:150,rest:0,isCooldown:true,safetyTip:"Releases tight hips that drag on your pelvic posture."}
     ]
   },
 
-  Wed:{
-    title:"Spine Maintenance", focus:"McGill Big 3 & Glutes", icon:"core",
-    desc:"Four movements, about twenty minutes. The endurance base is built — this keeps it.",
-    safety:"Maintenance dose. Enough to hold the stability you earned in block 1.",
+  Full:{
+    title:"Full Body Hypertrophy", focus:"Second Hit, Higher Reps", icon:"full",
+    desc:"Every muscle group's second session of the week. Lighter loads, more reps, one finisher.",
+    safety:"Single-leg and supported work lets you build volume without heavy spinal loading.",
     steps:[
-      {name:"Cat-Camel Primer",desc:"Slow cat-camel cycles, hip circles and ankle rocks",duration:150,rest:15,isWarmup:true,safetyTip:"Cat-camel is a mobility primer, not a stretch. Stay well inside your range."},
-      {id:"w-curl",name:"McGill Modified Curl-Ups",desc:"Hands under your lower back, curl the shoulders slightly",duration:40,rest:30,rounds:3,weekDuration:{4:60},safetyTip:"Do not lift your lower back off your hands. Minimal motion is enough."},
-      {id:"w-sideplank",name:"Side Planks",desc:"Hold a side bridge in a straight line",duration:30,rest:30,rounds:3,perSide:true,weekDuration:{4:45},safetyTip:"Strengthens the quadratus lumborum, a key back stabiliser."},
-      {id:"w-birddog",name:"Bird-Dog Holds",desc:"Opposite arm and leg extended, held five seconds",duration:40,rest:30,rounds:3,weekDuration:{4:60},safetyTip:"Imagine balancing a glass of water on your lower back."},
-      {id:"w-glute",name:"Glute Bridges",desc:"Squeeze the glutes hard for two seconds at the top",duration:40,rest:30,rounds:3,safetyTip:"Drive through the heels. Stop before your lower back arches."},
-      {name:"Decompression Flow",desc:"Gentle cat-camel into 90/90 breathing",duration:180,rest:0,isCooldown:true,safetyTip:"Never force range of motion. Stay inside your comfort zone."}
+      ...PRIMER,
+      {id:"f-split",name:"Dumbbell Split Squats",desc:"Staggered stance, torso tall. All reps one leg, then the other.",duration:45,rest:30,mainSets:true,superset:"A",reps:"8–10",repNote:"per leg",safetyTip:"Keep your ribs stacked over your hips. No leaning forward to cheat depth."},
+      {id:"f-row1",name:"One-Arm Supported Row",desc:"Hand and knee on a bench, flat back. One arm, then the other.",duration:45,rest:40,mainSets:true,superset:"A",reps:"10–12",repNote:"per arm",safetyTip:"The bench carries your torso. Don't rotate to heave the weight up."},
+      {id:"f-push",name:"Hands-Elevated Push-Ups",desc:"Hands on a bench or counter, body in one line",duration:30,rest:30,mainSets:true,superset:"B",reps:"10–15",safetyTip:"Elevating the hands keeps the hips from sagging into your lower back."},
+      {id:"f-bridge",name:"Weighted Glute Bridges",desc:"Dumbbell across the hips. Two-second squeeze at the top.",duration:30,rest:40,mainSets:true,superset:"B",reps:"12–15",safetyTip:"Drive through the heels. Stop before your lower back arches."},
+      {id:"f-carry",name:"Farmer's Carries",desc:"Walk tall holding dumbbells at your sides",duration:40,rest:20,rounds:3,superset:"C",safetyTip:"An excellent posture builder. Squeeze the shoulders back."},
+      {id:"c-2",name:"Speed Skater Step-Touches",desc:"Low-impact lateral side steps",duration:40,rest:20,rounds:3,superset:"C",safetyTip:"Chest up, knees slightly bent throughout."},
+      {name:"Full Body Decompression",desc:"Supported hip flexor stretch and thoracic open-books",duration:120,rest:0,isCooldown:true,safetyTip:"Bring the heart rate down while the hips and mid-back release."}
     ]
   },
 
-  Thu:{
-    title:"Low-Impact HIIT", focus:"Cardio & Metabolic Conditioning", icon:"cardio",
-    desc:"Raise your heart rate without the spinal compression that comes with jumping.",
-    safety:"Zero-impact conditioning. Burns calories without loading the discs.",
+  Cond:{
+    title:"Low-Impact Conditioning", focus:"Cardio & Work Capacity", icon:"cardio",
+    desc:"Three alternating pairs, forty on and twenty off. Heart rate up, nothing jumping.",
+    safety:"Zero-impact conditioning. Burns calories without compressing the discs.",
     steps:[
-      {name:"Active Warm-Up",desc:"Low-impact high knees and hip circles",duration:180,rest:15,isWarmup:true,safetyTip:"Stay light on your feet. No violent twisting."},
-      {id:"c-power",name:"Kettlebell / Dumbbell Swings",desc:"Short, explosive sets — quality hinges only",duration:30,rest:30,rounds:4,safetyTip:"Heavier bell, shorter set. Stop the moment the hinge turns into a back pull."},
-      {id:"c-1",name:"Shadow Boxing",desc:"Fast jabs and crosses with soft knees",duration:40,rest:20,rounds:4,safetyTip:"Pivot from your feet to protect hips and lower back."},
-      {id:"c-2",name:"Speed Skater Step-Touches",desc:"Low-impact lateral side steps",duration:40,rest:20,rounds:4,safetyTip:"Chest up, knees slightly bent throughout."},
-      {id:"c-core",name:"Bear Plank Holds",desc:"Knees hovering two inches off the floor",duration:40,rest:20,rounds:4,safetyTip:"Engage the deep transverse abdominis to support the lumbar spine."},
-      {name:"Cool-Down Stretch",desc:"Kneeling hamstring and hip flexor stretches",duration:180,rest:0,isCooldown:true,safetyTip:"Tight hip flexors pull directly on your lower spine. Hold gently."}
-    ]
-  },
-
-  Fri:{
-    title:"Full Body Conditioning", focus:"Metabolic Conditioning", icon:"full",
-    desc:"Full-body burner using moderate dumbbells to lift your metabolism.",
-    safety:"Controlled pacing rather than frantic reps keeps form intact.",
-    steps:[
-      {name:"Full Body Warm-Up",desc:"Torso twists and a light march in place",duration:180,rest:15,isWarmup:true,safetyTip:"Make sure the whole core is warm and responsive."},
-      {id:"f-thruster",name:"Dumbbell Thrusters",desc:"Squat into an overhead press, one fluid motion",duration:40,rest:20,rounds:4,safetyTip:"Keep the dumbbell close to your chest during the squat."},
-      {id:"f-row",name:"Supported Bent-Over Rows",desc:"Soft knees, braced core, flat back",duration:40,rest:20,rounds:4,safetyTip:"Brace your stomach hard for the whole set."},
-      {id:"f-push",name:"Hands-Elevated Push-Ups",desc:"Hands on a bench or counter, body in one line",duration:40,rest:20,rounds:4,safetyTip:"Elevating the hands keeps the hips from sagging into your lower back."},
-      {id:"f-carry",name:"Farmer's Carries",desc:"Walk tall holding dumbbells at your sides",duration:40,rest:20,rounds:4,safetyTip:"An excellent posture builder. Squeeze the shoulders back."},
-      {id:"f-core",name:"Slow Mountain Climbers",desc:"Knee to chest, slow and controlled",duration:40,rest:20,rounds:4,safetyTip:"Keep the hips level. Don't let your lower back sag."},
-      {name:"Full Body Decompression",desc:"Supported hip flexor stretch and thoracic open-books",duration:180,rest:0,isCooldown:true,safetyTip:"Bring the heart rate down while the hips and mid-back release."}
+      ...PRIMER,
+      {id:"c-power",name:"Kettlebell / Dumbbell Swings",desc:"Short, explosive sets — quality hinges only",duration:30,rest:30,rounds:4,superset:"A",safetyTip:"Stop the moment the hinge turns into a back pull."},
+      {id:"c-1",name:"Shadow Boxing",desc:"Fast jabs and crosses with soft knees",duration:40,rest:20,rounds:4,superset:"A",safetyTip:"Pivot from your feet to protect hips and lower back."},
+      {id:"f-thruster",name:"Dumbbell Thrusters",desc:"Squat into an overhead press, one fluid motion",duration:40,rest:20,rounds:4,superset:"B",safetyTip:"Keep the dumbbells close to your chest during the squat."},
+      {id:"c-2",name:"Speed Skater Step-Touches",desc:"Low-impact lateral side steps",duration:40,rest:20,rounds:4,superset:"B",safetyTip:"Chest up, knees slightly bent throughout."},
+      {id:"c-core",name:"Bear Plank Holds",desc:"Knees hovering two inches off the floor",duration:40,rest:20,rounds:4,superset:"C",safetyTip:"Engage the deep transverse abdominis to support the lumbar spine."},
+      {id:"f-core",name:"Slow Mountain Climbers",desc:"Knee to chest, slow and controlled",duration:40,rest:20,rounds:4,superset:"C",safetyTip:"Keep the hips level. Don't let your lower back sag."},
+      {name:"Cool-Down Stretch",desc:"Kneeling hamstring and hip flexor stretches",duration:150,rest:0,isCooldown:true,safetyTip:"Tight hip flexors pull directly on your lower spine. Hold gently."}
     ]
   }
 };
@@ -1083,10 +1088,11 @@ const ACCENT_HEX = {
 };
 /* Phase -> [background, foreground]. Grape is dark, so it flips to paper. */
 const PHASES = {
-  work:{ bg:"var(--magenta)",  on:"var(--ink)",     hex:"#FF2E88", label:"Work" },
-  rest:{ bg:"var(--marigold)", on:"var(--ink)",     hex:"#FFB300", label:"Rest" },
-  warm:{ bg:"var(--cyan)",     on:"var(--ink)",     hex:"#19C2E8", label:"Warm-Up" },
-  cool:{ bg:"var(--grape)",    on:"var(--paper-2)", hex:"#7B4FE0", label:"Cool-Down" }
+  work: { bg:"var(--magenta)",  on:"var(--ink)",     hex:"#FF2E88", label:"Work" },
+  rest: { bg:"var(--marigold)", on:"var(--ink)",     hex:"#FFB300", label:"Rest" },
+  warm: { bg:"var(--cyan)",     on:"var(--ink)",     hex:"#19C2E8", label:"Warm-Up" },
+  prime:{ bg:"var(--cyan)",     on:"var(--ink)",     hex:"#19C2E8", label:"Spine Primer" },
+  cool: { bg:"var(--grape)",    on:"var(--paper-2)", hex:"#7B4FE0", label:"Cool-Down" }
 };
 
 /* =================================================================== *
@@ -1097,15 +1103,17 @@ const STORE_KEY = "spinesafe.v2";
 const defaultState = () => ({
   week:1,
   block:1,
+  plan:PLAN_ID,
   sound:true,
   soundMode:"loud",  // "loud" | "mix" | "off"
   haptics:true,
-  completed:{},   // "b1-w1-Mon" -> "2026-08-10"
+  completed:{},   // "b3-w1-Up" -> "2026-09-28"
   logs:{}         // slot id -> { load, date, week, day }
 });
 
 const TRAINING_DAYS = DAYS;
 const TOTAL_SESSIONS = 4 * TRAINING_DAYS.length;
+const LEGACY_SESSIONS = 20;   // the original five-day block
 
 /* Completion is scoped to a block so a new cycle starts with a clean board,
    while state.logs — the load history — is deliberately never touched. */
@@ -1137,7 +1145,21 @@ function migrateBlocks(){
   });
   // A finished on-ramp rolls straight into block 2 with a clean board.
   const weekdays = legacy.filter(k => !k.endsWith("-Weekend")).length;
-  if(weekdays >= TOTAL_SESSIONS && state.block === 1) state.block = 2;
+  if(weekdays >= LEGACY_SESSIONS && state.block === 1) state.block = 2;
+  saveState();
+}
+
+/* One-time switch from the five-day layout to the four-day split. Five-day
+   completion marks can't map onto four sessions, so a block already under
+   way hands over to a fresh block. Load logs are keyed by exercise id and
+   carry straight across, so every weight you've found is still there. */
+function migratePlan(){
+  if(state.plan === PLAN_ID) return;
+  const prefix = "b" + state.block + "-";
+  const started = Object.keys(state.completed).some(k => k.startsWith(prefix));
+  if(started) state.block += 1;
+  state.week = 1;
+  state.plan = PLAN_ID;
   saveState();
 }
 
@@ -1149,6 +1171,7 @@ function loadState(){
     if(raw){
       const saved = JSON.parse(raw);
       state = Object.assign(defaultState(), saved);
+      if(!saved.plan) state.plan = null;   // saved before the four-day split
       // Older saves only had an on/off boolean.
       if(!saved.soundMode) state.soundMode = saved.sound === false ? "off" : "loud";
     }
@@ -1202,8 +1225,8 @@ function blockDone(){
  * =================================================================== */
 function dayData(week, day){ return PROGRAM[week].days[day]; }
 
-const SIDE_GAP = 30;
-const COOLDOWN_TRANSITION = 15;   // longest rest allowed right before a cool-down   // shorter breather between left and right of the same set
+const SIDE_GAP = 30;              // shorter breather between left and right of the same set
+const COOLDOWN_TRANSITION = 15;   // longest rest allowed right before a cool-down
 
 /* Loads are keyed by slot id, not display name, so "Dumbbell Floor Press" in
    week 1 and "Floor Press (Pause Sets)" in week 4 share one history. */
@@ -1222,6 +1245,7 @@ function formatClock(sec){
 }
 function stepKind(step){
   if(step.isWarmup) return "warm";
+  if(step.isPrimer) return "prime";
   if(step.isCooldown) return "cool";
   return "work";
 }
@@ -1233,7 +1257,7 @@ function stepKind(step){
 function buildSequence(week, day){
   const data = dayData(week, day);
   const seq = [];
-  const mainSteps = data.steps.filter(s => !s.isWarmup && !s.isCooldown);
+  const mainSteps = data.steps.filter(s => stepKind(s) === "work");
   let exIndex = 0;
 
   // Consecutive steps sharing a superset key alternate instead of running straight.
@@ -1274,10 +1298,12 @@ function buildSequence(week, day){
           // Between the two sides of one set you only need a breather.
           const gap = (side && si === 0) ? Math.min(rest, SIDE_GAP) : rest;
           if(gap > 0){
+            const primer = m.kind === "prime" || m.kind === "warm";
             seq.push({
               kind:"rest",
-              name: group.key && members.length > 1 ? "Switch Over" : "Shake It Out",
-              desc: group.key && members.length > 1
+              name: primer ? "Reset" : group.key && members.length > 1 ? "Switch Over" : "Shake It Out",
+              desc: primer ? "Get into position for the next hold."
+                : group.key && members.length > 1
                 ? "Move to the other half of the pair."
                 : "Breathe deep and reset your posture.",
               duration:gap, superset:group.key,
@@ -1299,6 +1325,10 @@ function buildSequence(week, day){
       item.duration = Math.min(item.duration, COOLDOWN_TRANSITION);
       item.name = "Shake It Out";
       item.desc = "Set the weights down and get ready to stretch.";
+    }else if(item.name === "Reset" && nxt.kind === "work"){
+      // The primer hands over to the first lift.
+      item.name = "Shake It Out";
+      item.desc = "Primer done. Grab your weights for the first set.";
     }else if(item.name === "Switch Over" && nxt.superset !== item.superset){
       // The last rest of a superset leads out of the pair, not across it.
       item.name = "Shake It Out";
@@ -1523,7 +1553,7 @@ function releaseWakeLock(){
  * 7. RUNTIME STATE
  * =================================================================== */
 let currentWeek = 1;
-let currentDay = "Mon";
+let currentDay = "Up";
 
 let sequence = [];
 let stepIndex = 0;
@@ -1630,7 +1660,7 @@ function renderOverview(){
   applyAccent(data.icon);
 
   el.weekMeta.textContent = currentWeek + " of 4";
-  el.blockLabel.textContent = "Block " + state.block + " · 4-Week Cycle";
+  el.blockLabel.textContent = "Block " + state.block + " · 4 Days a Week";
   el.dayGlyph.setAttribute("href", "#" + ICONS[data.icon]);
   el.dayFocus.textContent = data.focus;
   el.dayDuration.textContent = formatDuration(dayTotalSeconds(currentWeek, currentDay));
@@ -1669,9 +1699,11 @@ function renderExerciseList(data){
 
     const num = document.createElement("span");
     num.className = "exrow__num" +
-      (kind === "warm" ? " exrow__num--warm" : kind === "cool" ? " exrow__num--cool" : "");
+      (kind === "warm" || kind === "prime" ? " exrow__num--warm" : kind === "cool" ? " exrow__num--cool" : "");
     if(kind === "warm"){
       num.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg>';
+    }else if(kind === "prime"){
+      num.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg>';
     }else if(kind === "cool"){
       num.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg>';
     }else{
@@ -1692,6 +1724,8 @@ function renderExerciseList(data){
       if(rl) bits.push(rl);
       if(step.rest) bits.push(step.rest + "s rest");
       ds.textContent = step.desc + (bits.length ? " · " + bits.join(" · ") : "");
+    }else if(kind === "prime"){
+      ds.textContent = "Spine primer · " + step.desc;
     }else{
       ds.textContent = step.desc;
     }
@@ -1701,9 +1735,11 @@ function renderExerciseList(data){
     meta.className = "exrow__meta";
     const pill = document.createElement("span");
     pill.className = "pill" +
-      (kind === "warm" ? " pill--warm" : kind === "cool" ? " pill--cool" : "");
+      (kind === "warm" || kind === "prime" ? " pill--warm" : kind === "cool" ? " pill--cool" : "");
     pill.textContent = kind === "work"
       ? (step.rounds || 1) + "×" + step.duration + "s" + (step.perSide ? "/side" : "")
+      : kind === "prime"
+      ? step.duration + "s" + (step.perSide ? "/side" : "")
       : formatClock(step.duration);
     meta.appendChild(pill);
 
@@ -2343,6 +2379,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
  * =================================================================== */
 loadState();
 migrateBlocks();
+migratePlan();
 goToNextUp();
 
 renderSoundBtn();

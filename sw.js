@@ -5,7 +5,7 @@
  *
  * Bump CACHE whenever you edit index.html, or the old copy will stick around.
  */
-const CACHE  = "spinesafe-v3";
+const CACHE  = "spinesafe-v4";
 const PREFIX = "spinesafe-";   // only ever touch our own caches
 const ASSETS = [
   "./",

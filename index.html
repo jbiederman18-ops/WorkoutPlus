@@ -1431,17 +1431,24 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * 42;
 
 /* =================================================================== *
  * 5. AUDIO
- * iOS is the hard case, for four separate reasons:
+ * iOS is the hard case, for five separate reasons:
  *  1. Web Audio defaults to the "ambient" audio session, which the
- *     silent switch mutes. Desktop has no silent switch.
+ *     silent switch mutes on the speaker. Headphones ignore the switch.
  *  2. resume() is async, so a cue fired in the same tick as the unlock
  *     still saw "suspended" and was dropped (the first beep of every run).
  *  3. Locking the phone or switching apps parks the context in
  *     "suspended"/"interrupted", and only a user gesture reliably wakes it.
  *  4. Older WebKit only fully unlocks once a sound starts inside the gesture.
+ *  5. When another app grabs the audio route (a new video starting, a call,
+ *     Siri), the context can be interrupted without the page ever hiding,
+ *     and can even come back reporting "running" while it plays nothing.
+ *     A context in that state can't be trusted, so the next tap replaces it
+ *     with a fresh one instead of resuming it.
  * =================================================================== */
 let audioCtx = null;
 let resumeAskedAt = 0;
+let audioStale = false;   // the context may claim "running" but be silent
+let staleToastTimer = null;
 const VOLUME_BOOST = 3;   // phone speakers need far more than laptop speakers
 
 /* Safari 17+ Audio Session API. "playback" behaves like a timer app and
@@ -1450,13 +1457,43 @@ function setAudioSession(type){
   try{ if(navigator.audioSession) navigator.audioSession.type = type; }catch(e){}
 }
 
+function createContext(AC){
+  try{ audioCtx = new AC(); }catch(e){ audioCtx = null; return; }
+  audioStale = false;
+  const ctx = audioCtx;
+  ctx.onstatechange = () => {
+    // Only the live context matters, and only mid-workout.
+    if(ctx !== audioCtx || !running || !state.sound || ctx.state === "running") return;
+    // Something else took the audio route while you're still on this screen.
+    audioStale = true;
+    if(document.visibilityState === "visible") promptForTap();
+  };
+}
+
+/* Try a gesture-free resume first; if the beeps still can't be trusted,
+   ask for the one tap that rebuilds the context. */
+function promptForTap(){
+  if(audioCtx && audioCtx.state !== "running" && audioCtx.state !== "closed"){
+    try{ const p = audioCtx.resume(); if(p && p.catch) p.catch(()=>{}); }catch(e){}
+  }
+  clearTimeout(staleToastTimer);
+  staleToastTimer = setTimeout(() => {
+    if(running && audioAsleep()) toast("Tap anywhere to turn sound back on");
+  }, 400);
+}
+
 function unlockAudio(){
   if(!state.sound) return audioCtx;
   const AC = window.AudioContext || window.webkitAudioContext;
   if(!AC) return null;
   setAudioSession(SOUND_MODES[state.soundMode].session);
-  if(!audioCtx || audioCtx.state === "closed"){
-    try{ audioCtx = new AC(); }catch(e){ audioCtx = null; return null; }
+  if(!audioCtx || audioCtx.state === "closed" || audioStale){
+    // A context another app interrupted is replaced, not resumed.
+    if(audioCtx && audioCtx.state !== "closed"){
+      try{ const p = audioCtx.close(); if(p && p.catch) p.catch(()=>{}); }catch(e){}
+    }
+    createContext(AC);
+    if(!audioCtx) return null;
   }
   if(audioCtx.state !== "running"){
     resumeAskedAt = performance.now();
@@ -1476,14 +1513,15 @@ function releaseAudio(){ setAudioSession("auto"); }
 
 /* Web pages can't ask iOS for "playback, but mix with others", so this is
    a real choice: "playback" beats the silent switch but interrupts other
-   apps; "ambient" mixes over video/music but obeys the silent switch. */
+   apps; "ambient" mixes over video/music but obeys the silent switch on the
+   speaker. In headphones the switch doesn't apply, so Mix just works. */
 const SOUND_MODES = {
   loud:{ session:"playback", icon:"#i-vol-on",  label:"Loud", next:"mix",
          aria:"Sound: loud. Works on silent, pauses other audio.",
          toast:"Loud · pauses other audio" },
   mix: { session:"ambient",  icon:"#i-vol-mix", label:"Mix",  next:"off",
-         aria:"Sound: mix. Plays over other audio, needs ringer on.",
-         toast:"Mix · ringer must be on" },
+         aria:"Sound: mix. Plays over other audio. On the speaker it needs the ringer on.",
+         toast:"Mix · speaker needs ringer on" },
   off: { session:"auto",     icon:"#i-vol-off", label:"Off",  next:"loud",
          aria:"Sound off.", toast:"Sound off" }
 };
@@ -1526,7 +1564,8 @@ function beep(freq, seconds, volume){
   }catch(e){ /* audio is a nicety, never a blocker */ }
 }
 
-const audioAsleep = () => state.sound && (!audioCtx || audioCtx.state !== "running");
+const audioAsleep = () =>
+  state.sound && (!audioCtx || audioCtx.state !== "running" || audioStale);
 
 function buzz(pattern){
   if(!state.haptics) return;
@@ -2353,16 +2392,16 @@ document.addEventListener("keydown", e => {
 
 // Re-sync after the phone locks, the tab backgrounds, or the app is switched away.
 document.addEventListener("visibilitychange", () => {
-  if(document.visibilityState !== "visible") return;
   if(!running) return;
+  if(document.visibilityState !== "visible"){
+    // Mix shares the audio route with whatever you switch to (a new video,
+    // say), and iOS can hand the context back looking fine but silent.
+    if(state.soundMode === "mix") audioStale = true;
+    return;
+  }
   acquireWakeLock();
   tick();
-  if(audioCtx && audioCtx.state !== "running"){
-    audioCtx.resume().catch(()=>{});   // works on some iOS versions without a tap
-    setTimeout(() => {
-      if(running && audioAsleep()) toast("Tap anywhere to turn sound back on");
-    }, 400);
-  }
+  if(audioAsleep()) promptForTap();
 });
 
 window.addEventListener("pagehide", releaseWakeLock);

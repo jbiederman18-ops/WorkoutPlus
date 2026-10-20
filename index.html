@@ -979,7 +979,7 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
       <div class="principle"><span class="principle__n">2</span><span><b>No spinal flexion under load</b>Never let your lower back round during a hinge, deadlift, or squat.</span></div>
       <div class="principle"><span class="principle__n">3</span><span><b>Finish with your glutes</b>Squeeze hard at the top of every hinge and squat, ribs down. Strong glutes take load off your lumbar spine, so the lockout should never come from arching your back.</span></div>
       <div class="principle"><span class="principle__n">4</span><span><b>Use the 3/10 rule</b>Discomfort up to 3 out of 10 during a session is fine if it's back to your normal by the next morning. Sharp or shooting pain means stop now. Worse the next day means the last session was too much: switch on Cranky Back Mode.</span></div>
-      <div class="principle"><span class="principle__n">5</span><span><b>Keep changing position</b>Your back gets cranky when you hold one position too long, sitting or standing. Walk during rests instead of standing still, and change position every 20–30 minutes through the day. Short walks help most. If it hasn't settled in a couple of weeks, get it assessed by a physio.</span></div>
+      <div class="principle"><span class="principle__n">5</span><span><b>Keep changing position</b>Your back gets cranky when you hold one position too long, sitting or standing. Walk during rests instead of standing still, and change position every 20–30 minutes through the day. Protect the side of your hip too: don't cross your legs or stand hanging on one hip, and sleep with a pillow between your knees. Short walks help most. If it hasn't settled in a couple of weeks, get it assessed by a physio.</span></div>
     </div>
     <div class="sheet__foot">
       <button id="modal-ok" class="btn">Got It</button>
@@ -1034,8 +1034,9 @@ const WEEK_PLAN = {
 const PRIMER = [
   {name:"Cat-Camel & Hip Circles",desc:"Slow cat-camel cycles, then hip circles and ankle rocks",duration:75,rest:10,isWarmup:true,safetyTip:"A mobility primer, not a stretch. Stay well inside your range."},
   {id:"p-curl",name:"McGill Curl-Ups",desc:"Hands under your lower back, one knee bent. Ten-second holds.",duration:40,rest:10,isPrimer:true,weekDuration:{4:60},safetyTip:"Don't lift your lower back off your hands. Minimal motion is enough."},
-  {id:"p-side",name:"Side Plank",desc:"From knees or feet, body in one line. Ten-second holds, short breath between.",duration:25,rest:10,perSide:true,isPrimer:true,weekDuration:{4:40},safetyTip:"Trains the quadratus lumborum, a key back stabiliser. Drop to your knees between holds."},
-  {id:"p-bird",name:"Bird-Dogs",desc:"Opposite arm and leg, ten-second holds, alternate sides",duration:40,rest:15,isPrimer:true,weekDuration:{4:60},safetyTip:"Imagine balancing a glass of water on your lower back."}
+  {id:"p-side",name:"Side Plank",desc:"From your knees while the side of your hip is sore. Ten-second holds, short breath between.",duration:25,rest:10,perSide:true,isPrimer:true,weekDuration:{4:40},safetyTip:"Trains the quadratus lumborum and the side glutes. Stop if the side of your hip hurts during the hold."},
+  {id:"p-bird",name:"Bird-Dogs",desc:"Opposite arm and leg, ten-second holds, alternate sides",duration:40,rest:15,isPrimer:true,weekDuration:{4:60},safetyTip:"Imagine balancing a glass of water on your lower back."},
+  {id:"p-hip",name:"Side-Hip Wall Press",desc:"Stand side-on to a wall, lift the near knee and press it into the wall. Standing leg does the work.",duration:30,rest:10,perSide:true,isPrimer:true,safetyTip:"Hips stay level, standing knee soft. A steady press calms an irritated side-hip tendon."}
 ];
 
 /* A `flare` block on a step is the swap Cranky Back Mode makes. A new id
@@ -1068,7 +1069,7 @@ const SESSIONS = {
         flare:{id:"l-hinge-lite",name:"Light Partial RDLs",desc:"About 70% of your usual weight. Stop just above the knee.",reps:"8–10",safetyTip:"Short range, slow tempo. The goal is to groove the hinge, not load it."}},
       {id:"l-lunge",name:"Reverse Lunges",desc:"Step backward into the lunge, alternating legs",duration:30,rest:40,mainSets:true,superset:"A",reps:"8–10",repNote:"per leg",safetyTip:"Stepping back reduces knee shear and keeps the spine vertical."},
       {id:"l-glute",name:"Hip Thrusts",desc:"Upper back resting against a couch or bench",duration:40,rest:40,mainSets:true,superset:"A",reps:"10–12",safetyTip:"Ribs down at the top. Finish with your glutes, never by arching your lower back."},
-      {name:"Lower Body Stretch",desc:"Figure-4 stretch and standing quad release",duration:150,rest:0,isCooldown:true,safetyTip:"Releases tight hips that drag on your pelvic posture."}
+      {name:"Lower Body Stretch",desc:"Half-kneeling hip flexor stretch and standing quad release",duration:150,rest:0,isCooldown:true,safetyTip:"No figure-4 or cross-body glute stretches while the side of your hip is sore. They press on the tendon."}
     ]
   },
 
@@ -1083,8 +1084,8 @@ const SESSIONS = {
       {id:"f-push",name:"Hands-Elevated Push-Ups",desc:"Hands on a bench or counter, body in one line",duration:30,rest:30,mainSets:true,superset:"B",reps:"10–15",safetyTip:"Elevating the hands keeps the hips from sagging into your lower back."},
       {id:"f-bridge",name:"Weighted Glute Bridges",desc:"Dumbbell across the hips. Two-second squeeze at the top.",duration:30,rest:40,mainSets:true,superset:"B",reps:"12–15",safetyTip:"Drive through the heels. Stop before your lower back arches."},
       {id:"f-carry",name:"Farmer's Carries",desc:"Walk tall holding dumbbells at your sides",duration:40,rest:20,rounds:3,superset:"C",safetyTip:"An excellent posture builder. Squeeze the shoulders back."},
-      {id:"c-2",name:"Speed Skater Step-Touches",desc:"Low-impact lateral side steps",duration:40,rest:20,rounds:3,superset:"C",safetyTip:"Chest up, knees slightly bent throughout."},
-      {name:"Full Body Decompression",desc:"Supported hip flexor stretch and thoracic open-books",duration:120,rest:0,isCooldown:true,safetyTip:"Bring the heart rate down while the hips and mid-back release."}
+      {id:"c-2",name:"Speed Skater Step-Touches",desc:"Low-impact lateral side steps. Don't cross the trailing leg behind you.",duration:40,rest:20,rounds:3,superset:"C",safetyTip:"Chest up, knees slightly bent. Tap the trailing foot beside you, not behind, to spare the side of the hip."},
+      {name:"Full Body Decompression",desc:"Supported hip flexor stretch and thoracic open-books",duration:120,rest:0,isCooldown:true,safetyTip:"For open-books, lie on your less sore side with a pillow between your knees."}
     ]
   },
 
@@ -1097,7 +1098,7 @@ const SESSIONS = {
       {id:"c-step",name:"Alternating Step-Ups",desc:"Sturdy low step or stair, alternating legs at a brisk pace",duration:30,rest:30,rounds:4,superset:"A",safetyTip:"Stand all the way up on top, torso tall. Drive through the heel on the step."},
       {id:"c-1",name:"Shadow Boxing",desc:"Fast jabs and crosses with soft knees",duration:40,rest:20,rounds:4,superset:"A",safetyTip:"Pivot from your feet to protect hips and lower back."},
       {id:"c-squat",name:"Speed Goblet Box Squats",desc:"Light dumbbell. Tap the box and stand, brisk and steady.",duration:40,rest:20,rounds:4,superset:"B",safetyTip:"Touch the box, don't drop onto it. Chest proud the whole way."},
-      {id:"c-2",name:"Speed Skater Step-Touches",desc:"Low-impact lateral side steps",duration:40,rest:20,rounds:4,superset:"B",safetyTip:"Chest up, knees slightly bent throughout."},
+      {id:"c-2",name:"Speed Skater Step-Touches",desc:"Low-impact lateral side steps. Don't cross the trailing leg behind you.",duration:40,rest:20,rounds:4,superset:"B",safetyTip:"Chest up, knees slightly bent. Tap the trailing foot beside you, not behind, to spare the side of the hip."},
       {id:"c-core",name:"Bear Plank Holds",desc:"Knees hovering two inches off the floor",duration:40,rest:20,rounds:4,superset:"C",safetyTip:"Engage the deep transverse abdominis to support the lumbar spine."},
       {id:"f-core",name:"Slow Mountain Climbers",desc:"Knee to chest, slow and controlled",duration:40,rest:20,rounds:4,superset:"C",safetyTip:"Keep the hips level. Don't let your lower back sag.",
         flare:{id:"c-deadbug",name:"Dead Bugs",desc:"On your back, slowly lower the opposite arm and leg",safetyTip:"Keep your lower back gently pressed into the floor the whole time."}},

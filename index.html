@@ -313,6 +313,41 @@ main{flex:1;display:flex;flex-direction:column;padding:0 16px}
   color:var(--ink);margin-right:4px;
 }
 
+/* --- Cranky Back Mode toggle --------------------------------------- */
+.flare{
+  width:100%;display:flex;align-items:center;gap:11px;
+  margin:16px 0 12px;padding:10px 12px;
+  border:2px solid var(--ink);background:var(--paper-2);
+  text-align:left;
+  transition:background .15s,transform .08s,box-shadow .12s;
+}
+.flare:active{transform:translate(2px,2px)}
+.flare[aria-pressed="true"]{background:var(--marigold);box-shadow:var(--shadow-sm)}
+.flare__icon{
+  width:30px;height:30px;flex:none;display:grid;place-items:center;
+  font-size:16px;background:var(--ink);color:var(--marigold);
+  transform:rotate(-4deg);
+}
+.flare__icon .icon{stroke-width:2.6}
+.flare__text{flex:1;min-width:0}
+.flare__title{
+  display:block;font-family:var(--display);font-size:17px;
+  letter-spacing:.04em;text-transform:uppercase;line-height:1;
+}
+.flare__sub{display:block;margin-top:4px;font-size:11px;font-weight:600;line-height:1.3;color:var(--ink-60)}
+.flare[aria-pressed="true"] .flare__sub{color:var(--ink)}
+.flare__switch{
+  width:44px;height:24px;flex:none;position:relative;
+  border:2px solid var(--ink);background:var(--paper);
+}
+.flare__switch::after{
+  content:"";position:absolute;top:2px;left:2px;
+  width:16px;height:16px;background:var(--ink-38);
+  transition:transform .15s,background .15s;
+}
+.flare[aria-pressed="true"] .flare__switch{background:var(--paper-2)}
+.flare[aria-pressed="true"] .flare__switch::after{transform:translateX(20px);background:var(--ink)}
+
 /* --- Section heading ----------------------------------------------- */
 .section-title{display:flex;align-items:center;gap:9px;margin:20px 0 10px}
 .section-title h3{
@@ -768,6 +803,15 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
         <div class="tabs tabs--day" role="tablist" aria-label="Session"></div>
       </div>
 
+      <button id="flare-btn" class="flare" type="button" aria-pressed="false">
+        <span class="flare__icon"><svg class="icon" aria-hidden="true"><use href="#i-heart"/></svg></span>
+        <span class="flare__text">
+          <span class="flare__title">Cranky Back Mode</span>
+          <span id="flare-sub" class="flare__sub"></span>
+        </span>
+        <span class="flare__switch" aria-hidden="true"></span>
+      </button>
+
       <article class="daycard">
         <div class="daycard__bar">
           <span id="day-focus" class="daycard__focus"></span>
@@ -933,9 +977,9 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
     <div class="principles">
       <div class="principle"><span class="principle__n">1</span><span><b>Brace your abdominals</b>Tighten your stomach outward before you lift. That pressure supports your spine from the inside.</span></div>
       <div class="principle"><span class="principle__n">2</span><span><b>No spinal flexion under load</b>Never let your lower back round during a hinge, deadlift, or squat.</span></div>
-      <div class="principle"><span class="principle__n">3</span><span><b>Finish with your glutes</b>Squeeze hard at the top of every hinge and squat. Strong glutes take load off your lumbar spine.</span></div>
-      <div class="principle"><span class="principle__n">4</span><span><b>Listen to pain</b>Muscle fatigue is fine. Sharp or shooting sensations mean stop now.</span></div>
-      <div class="principle"><span class="principle__n">5</span><span><b>Know which back you have</b>This program assumes bending forward is what bothers you, which is the most common pattern. If your pain comes from arching back instead, some of these exercises are wrong for you. Get assessed by a physio or doctor before week 1.</span></div>
+      <div class="principle"><span class="principle__n">3</span><span><b>Finish with your glutes</b>Squeeze hard at the top of every hinge and squat, ribs down. Strong glutes take load off your lumbar spine, so the lockout should never come from arching your back.</span></div>
+      <div class="principle"><span class="principle__n">4</span><span><b>Use the 3/10 rule</b>Discomfort up to 3 out of 10 during a session is fine if it's back to your normal by the next morning. Sharp or shooting pain means stop now. Worse the next day means the last session was too much: switch on Cranky Back Mode.</span></div>
+      <div class="principle"><span class="principle__n">5</span><span><b>Keep changing position</b>Your back gets cranky when you hold one position too long, sitting or standing. Walk during rests instead of standing still, and change position every 20–30 minutes through the day. Short walks help most. If it hasn't settled in a couple of weeks, get it assessed by a physio.</span></div>
     </div>
     <div class="sheet__foot">
       <button id="modal-ok" class="btn">Got It</button>
@@ -975,24 +1019,27 @@ const ICONS = {
 };
 
 /* Each week runs the same four sessions. Only the working-set count changes,
-   because the progression lever is load, not structure. Week 4 lengthens the
-   primer holds as the spine-endurance retest. */
+   because the progression lever is load, not structure. Week 4 adds more
+   ten-second primer holds as the spine-endurance retest. */
 const WEEK_PLAN = {
   1:{ sets:3, progression:"Calibrate. Three working sets while you settle into four days a week. The suitcase carry, split squats and one-arm rows are new, so start them conservatively." },
   2:{ sets:4, progression:"Climb. Four working sets. Any lift where you hit the top of the rep range on every set gets the smallest increment you own next session." },
   3:{ sets:4, progression:"Climb. Identical to week 2 on purpose. The only thing that should change is the weight written in your log." },
-  4:{ sets:3, progression:"Consolidate. Hold your week 3 weights and drop back to three sets. The spine primer holds get longer this week as your endurance retest." }
+  4:{ sets:3, progression:"Consolidate. Hold your week 3 weights and drop back to three sets. The spine primer gets more ten-second holds this week as your endurance retest." }
 };
 
 /* The McGill Big 3, opening every session. Short holds before training
-   switch the stabilisers on without tiring them out ahead of the lifts. */
+   switch the stabilisers on without tiring them out ahead of the lifts.
+   Endurance is built by repeating ten-second holds, never one long hold. */
 const PRIMER = [
   {name:"Cat-Camel & Hip Circles",desc:"Slow cat-camel cycles, then hip circles and ankle rocks",duration:75,rest:10,isWarmup:true,safetyTip:"A mobility primer, not a stretch. Stay well inside your range."},
   {id:"p-curl",name:"McGill Curl-Ups",desc:"Hands under your lower back, one knee bent. Ten-second holds.",duration:40,rest:10,isPrimer:true,weekDuration:{4:60},safetyTip:"Don't lift your lower back off your hands. Minimal motion is enough."},
-  {id:"p-side",name:"Side Plank",desc:"From knees or feet, body in one straight line",duration:25,rest:10,perSide:true,isPrimer:true,weekDuration:{4:40},safetyTip:"Trains the quadratus lumborum, a key back stabiliser."},
+  {id:"p-side",name:"Side Plank",desc:"From knees or feet, body in one line. Ten-second holds, short breath between.",duration:25,rest:10,perSide:true,isPrimer:true,weekDuration:{4:40},safetyTip:"Trains the quadratus lumborum, a key back stabiliser. Drop to your knees between holds."},
   {id:"p-bird",name:"Bird-Dogs",desc:"Opposite arm and leg, ten-second holds, alternate sides",duration:40,rest:15,isPrimer:true,weekDuration:{4:60},safetyTip:"Imagine balancing a glass of water on your lower back."}
 ];
 
+/* A `flare` block on a step is the swap Cranky Back Mode makes. A new id
+   keeps the lighter loads in their own log, so your normal history is safe. */
 const SESSIONS = {
   Up:{
     title:"Upper Body Strength", focus:"Push, Pull & Carry", icon:"strength",
@@ -1002,7 +1049,7 @@ const SESSIONS = {
       ...PRIMER,
       {id:"u-press",name:"Dumbbell Floor Press",desc:"Keep your lower back flat against the floor",duration:30,rest:40,mainSets:true,superset:"A",reps:"8–10",safetyTip:"Pressing from the floor protects the lumbar spine completely."},
       {id:"u-row",name:"Chest-Supported Rows",desc:"Rest your chest on an incline bench or lean a hand on a chair",duration:30,rest:40,mainSets:true,superset:"A",reps:"8–10",safetyTip:"Supporting your upper body takes all pressure off the lower back."},
-      {id:"u-ohp",name:"Seated Overhead Press",desc:"Sit upright with your back flat against the chair",duration:30,rest:40,mainSets:true,superset:"B",reps:"8–10",safetyTip:"Seated posture stops you hyperextending under an overhead load."},
+      {id:"u-ohp",name:"Seated Overhead Press",desc:"Sit upright with your back flat against the chair",duration:30,rest:40,mainSets:true,superset:"B",reps:"8–10",safetyTip:"Ribs down, glutes squeezed. If your lower back arches to finish a rep, the weight is too heavy."},
       {id:"u-carry",name:"Suitcase Carry",desc:"One heavy dumbbell at your side. Switch hands halfway.",duration:40,rest:40,mainSets:true,superset:"B",effort:"Walked the full 40 seconds without leaning? Go heavier next session.",safetyTip:"Resist the lean. One-sided carries build side-to-side spine stability."},
       {id:"c-1",name:"Shadow Boxing",desc:"Fast jabs and crosses with soft knees",duration:40,rest:20,rounds:3,safetyTip:"Pivot from your feet to protect hips and lower back."},
       {name:"Supported Decompression",desc:"Doorframe chest stretch, then 90/90 breathing on your back",duration:120,rest:0,isCooldown:true,safetyTip:"Breathe into your ribcage to let the spinal muscles switch off."}
@@ -1012,13 +1059,15 @@ const SESSIONS = {
   Lo:{
     title:"Lower Body Strength", focus:"Legs & Glutes, No Axial Load", icon:"legs",
     desc:"Two heavy patterns straight, then lunges and hip thrusts paired to save time.",
-    safety:"Box squats and reverse lunges keep strain off your back.",
+    safety:"Box squats and reverse lunges keep strain off your back. Walk during the long rests.",
     steps:[
       ...PRIMER,
-      {id:"l-squat",name:"Goblet Box Squats",desc:"Squat down to a chair or bench contact point",duration:30,rest:90,mainSets:true,reps:"6–8",safetyTip:"Sitting to a box guarantees safe depth without rounding."},
-      {id:"l-hinge",name:"Dumbbell Romanian Deadlifts",desc:"Hinge at the hips. Stop the weights at shin level.",duration:30,rest:90,mainSets:true,reps:"6–8",safetyTip:"Keep the weights hugging your legs. Never let the spine flex forward."},
+      {id:"l-squat",name:"Goblet Box Squats",desc:"Squat down to a chair or bench contact point",duration:30,rest:90,mainSets:true,reps:"6–8",safetyTip:"Sitting to a box guarantees safe depth without rounding.",
+        flare:{id:"l-squat-lite",name:"Goblet Box Squats — High Box",desc:"Higher box, lighter dumbbell. Stand all the way up between reps.",reps:"8–10",safetyTip:"A higher box shortens the range so your back never has to round."}},
+      {id:"l-hinge",name:"Dumbbell Romanian Deadlifts",desc:"Hinge at the hips. Stop where your back would start to round, usually just below the knee.",duration:30,rest:90,mainSets:true,reps:"6–8",safetyTip:"Keep the weights hugging your legs. Range ends where your hips stop moving, not at a fixed depth.",
+        flare:{id:"l-hinge-lite",name:"Light Partial RDLs",desc:"About 70% of your usual weight. Stop just above the knee.",reps:"8–10",safetyTip:"Short range, slow tempo. The goal is to groove the hinge, not load it."}},
       {id:"l-lunge",name:"Reverse Lunges",desc:"Step backward into the lunge, alternating legs",duration:30,rest:40,mainSets:true,superset:"A",reps:"8–10",repNote:"per leg",safetyTip:"Stepping back reduces knee shear and keeps the spine vertical."},
-      {id:"l-glute",name:"Hip Thrusts",desc:"Upper back resting against a couch or bench",duration:40,rest:40,mainSets:true,superset:"A",reps:"10–12",safetyTip:"The gold-standard glute exercise. No axial load on the spine."},
+      {id:"l-glute",name:"Hip Thrusts",desc:"Upper back resting against a couch or bench",duration:40,rest:40,mainSets:true,superset:"A",reps:"10–12",safetyTip:"Ribs down at the top. Finish with your glutes, never by arching your lower back."},
       {name:"Lower Body Stretch",desc:"Figure-4 stretch and standing quad release",duration:150,rest:0,isCooldown:true,safetyTip:"Releases tight hips that drag on your pelvic posture."}
     ]
   },
@@ -1041,17 +1090,18 @@ const SESSIONS = {
 
   Cond:{
     title:"Low-Impact Conditioning", focus:"Cardio & Work Capacity", icon:"cardio",
-    desc:"Three alternating pairs, forty on and twenty off. Heart rate up, nothing jumping.",
+    desc:"Three alternating pairs, forty on and twenty off. Heart rate up, nothing jumping, no ballistic hinging.",
     safety:"Zero-impact conditioning. Burns calories without compressing the discs.",
     steps:[
       ...PRIMER,
-      {id:"c-power",name:"Kettlebell / Dumbbell Swings",desc:"Short, explosive sets — quality hinges only",duration:30,rest:30,rounds:4,superset:"A",safetyTip:"Stop the moment the hinge turns into a back pull."},
+      {id:"c-step",name:"Alternating Step-Ups",desc:"Sturdy low step or stair, alternating legs at a brisk pace",duration:30,rest:30,rounds:4,superset:"A",safetyTip:"Stand all the way up on top, torso tall. Drive through the heel on the step."},
       {id:"c-1",name:"Shadow Boxing",desc:"Fast jabs and crosses with soft knees",duration:40,rest:20,rounds:4,superset:"A",safetyTip:"Pivot from your feet to protect hips and lower back."},
-      {id:"f-thruster",name:"Dumbbell Thrusters",desc:"Squat into an overhead press, one fluid motion",duration:40,rest:20,rounds:4,superset:"B",safetyTip:"Keep the dumbbells close to your chest during the squat."},
+      {id:"c-squat",name:"Speed Goblet Box Squats",desc:"Light dumbbell. Tap the box and stand, brisk and steady.",duration:40,rest:20,rounds:4,superset:"B",safetyTip:"Touch the box, don't drop onto it. Chest proud the whole way."},
       {id:"c-2",name:"Speed Skater Step-Touches",desc:"Low-impact lateral side steps",duration:40,rest:20,rounds:4,superset:"B",safetyTip:"Chest up, knees slightly bent throughout."},
       {id:"c-core",name:"Bear Plank Holds",desc:"Knees hovering two inches off the floor",duration:40,rest:20,rounds:4,superset:"C",safetyTip:"Engage the deep transverse abdominis to support the lumbar spine."},
-      {id:"f-core",name:"Slow Mountain Climbers",desc:"Knee to chest, slow and controlled",duration:40,rest:20,rounds:4,superset:"C",safetyTip:"Keep the hips level. Don't let your lower back sag."},
-      {name:"Cool-Down Stretch",desc:"Kneeling hamstring and hip flexor stretches",duration:150,rest:0,isCooldown:true,safetyTip:"Tight hip flexors pull directly on your lower spine. Hold gently."}
+      {id:"f-core",name:"Slow Mountain Climbers",desc:"Knee to chest, slow and controlled",duration:40,rest:20,rounds:4,superset:"C",safetyTip:"Keep the hips level. Don't let your lower back sag.",
+        flare:{id:"c-deadbug",name:"Dead Bugs",desc:"On your back, slowly lower the opposite arm and leg",safetyTip:"Keep your lower back gently pressed into the floor the whole time."}},
+      {name:"Cool-Down Stretch",desc:"Lying strap hamstring stretch, then half-kneeling hip flexor stretch",duration:150,rest:0,isCooldown:true,safetyTip:"Lower back stays flat on the floor for the hamstrings. Tuck the tailbone for the hip flexors."}
     ]
   }
 };
@@ -1067,6 +1117,7 @@ const PROGRAM = (function(){
       out[w].days[key] = Object.assign({}, session, {
         steps: session.steps.map(step => {
           const copy = Object.assign({}, step);
+          copy.baseDuration = step.duration;
           if(step.mainSets) copy.rounds = plan.sets;
           if(step.weekDuration && step.weekDuration[w]) copy.duration = step.weekDuration[w];
           return copy;
@@ -1076,6 +1127,23 @@ const PROGRAM = (function(){
   }
   return out;
 })();
+
+/* Cranky Back Mode: the same sessions, scaled back for a flare.
+   Two sets of everything, lighter swaps where a lift loads the back,
+   no week 4 primer extension, and no load increases. */
+const FLARE_SETS = 2;
+const FLARE_SAFETY = "Cranky Back Mode: two sets, lighter swaps, hold your weights. Discomfort stays at 3/10 or below and settles by morning.";
+const FLARE_CUE = "Cranky Back Mode: hold your weights. No increases until your back settles.";
+const FLARE_PROGRESSION = "On hold. Every exercise is capped at two sets and your weights stay put. The normal week picks back up when you switch Cranky Back Mode off.";
+
+function applyFlare(step){
+  const copy = Object.assign({}, step);
+  if(step.flare) Object.assign(copy, step.flare);
+  delete copy.flare;
+  if(stepKind(copy) === "work" && copy.rounds) copy.rounds = Math.min(copy.rounds, FLARE_SETS);
+  if(copy.isPrimer) copy.duration = copy.baseDuration;
+  return copy;
+}
 
 /* Day type -> the colour that represents it everywhere in the UI. */
 const ACCENTS = {
@@ -1107,6 +1175,7 @@ const defaultState = () => ({
   sound:true,
   soundMode:"loud",  // "loud" | "mix" | "off"
   haptics:true,
+  flare:false,    // Cranky Back Mode
   completed:{},   // "b3-w1-Up" -> "2026-09-28"
   logs:{}         // slot id -> { load, date, week, day }
 });
@@ -1178,6 +1247,7 @@ function loadState(){
   }catch(e){ /* storage unavailable or corrupt — carry on with defaults */ }
   if(!SOUND_MODES[state.soundMode]) state.soundMode = "loud";
   state.sound = state.soundMode !== "off";
+  state.flare = state.flare === true;
 }
 function saveState(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
@@ -1223,7 +1293,11 @@ function blockDone(){
 /* =================================================================== *
  * 3. DERIVED PROGRAM HELPERS
  * =================================================================== */
-function dayData(week, day){ return PROGRAM[week].days[day]; }
+function dayData(week, day){
+  const base = PROGRAM[week].days[day];
+  if(!state.flare) return base;
+  return Object.assign({}, base, { safety:FLARE_SAFETY, steps: base.steps.map(applyFlare) });
+}
 
 const SIDE_GAP = 30;              // shorter breather between left and right of the same set
 const COOLDOWN_TRANSITION = 15;   // longest rest allowed right before a cool-down
@@ -1249,6 +1323,10 @@ function stepKind(step){
   if(step.isCooldown) return "cool";
   return "work";
 }
+
+/* Your back dislikes holding one position, so rests are for walking,
+   not standing still or sitting. */
+const REST_TIP = "Keep moving. Walk a lap or march in place instead of standing still or sitting.";
 
 /**
  * Flatten a day into the timed sequence the timer actually runs,
@@ -1301,13 +1379,13 @@ function buildSequence(week, day){
             const primer = m.kind === "prime" || m.kind === "warm";
             seq.push({
               kind:"rest",
-              name: primer ? "Reset" : group.key && members.length > 1 ? "Switch Over" : "Shake It Out",
+              name: primer ? "Reset" : group.key && members.length > 1 ? "Switch Over" : "Walk It Off",
               desc: primer ? "Get into position for the next hold."
                 : group.key && members.length > 1
                 ? "Move to the other half of the pair."
-                : "Breathe deep and reset your posture.",
+                : "Walk around and reset your posture.",
               duration:gap, superset:group.key,
-              safetyTip:"Shake the arms and legs out softly. Keep the spine long.",
+              safetyTip: primer ? "Shake the arms and legs out softly. Keep the spine long." : REST_TIP,
               reps:"", effort:"", exIndex:m.index, exTotal:mainSteps.length
             });
           }
@@ -1331,8 +1409,9 @@ function buildSequence(week, day){
       item.desc = "Primer done. Grab your weights for the first set.";
     }else if(item.name === "Switch Over" && nxt.superset !== item.superset){
       // The last rest of a superset leads out of the pair, not across it.
-      item.name = "Shake It Out";
-      item.desc = "Breathe deep and reset your posture.";
+      item.name = "Walk It Off";
+      item.desc = "Walk around and reset your posture.";
+      item.safetyTip = REST_TIP;
     }
   });
   return seq;
@@ -1345,6 +1424,7 @@ function repLabel(step){
 
 const PROGRESSION_CUE = "Hit the top of the range on every set? Add the smallest increment you own next session.";
 function effortCue(step){
+  if(state.flare && (step.reps || step.effort)) return FLARE_CUE;
   if(step.effort) return step.effort;
   return step.reps ? PROGRESSION_CUE : "";
 }
@@ -1358,6 +1438,8 @@ const el = {
   weekTabs:   document.querySelector(".tabs--week"),
   dayTabs:    document.querySelector(".tabs--day"),
   weekMeta:   $("week-meta"),
+  flareBtn:   $("flare-btn"),
+  flareSub:   $("flare-sub"),
   dayGlyph:   $("day-glyph").querySelector("use"),
   dayFocus:   $("day-focus"),
   dayDuration:$("day-duration"),
@@ -1694,9 +1776,17 @@ function applyAccent(iconKey){
     iconKey === "core" ? "var(--paper-2)" : "var(--ink)");
 }
 
+function renderFlare(){
+  el.flareBtn.setAttribute("aria-pressed", state.flare ? "true" : "false");
+  el.flareSub.textContent = state.flare
+    ? "On · 2 sets, lighter swaps, no increases. Switch off once mornings feel normal again."
+    : "Back flaring? Two sets, lighter swaps, same spine primer.";
+}
+
 function renderOverview(){
   const data = dayData(currentWeek, currentDay);
   applyAccent(data.icon);
+  renderFlare();
 
   el.weekMeta.textContent = currentWeek + " of 4";
   el.blockLabel.textContent = "Block " + state.block + " · 4 Days a Week";
@@ -1707,7 +1797,7 @@ function renderOverview(){
   el.dayDesc.textContent = data.desc;
   el.daySafety.textContent = data.safety;
   el.progression.innerHTML = "<b>Week " + currentWeek + "</b>" +
-    escapeHtml(PROGRAM[currentWeek].progression);
+    escapeHtml(state.flare ? FLARE_PROGRESSION : PROGRAM[currentWeek].progression);
 
   const seq = buildSequence(currentWeek, currentDay);
   const workSets = seq.filter(s => s.kind === "work").length;
@@ -2131,6 +2221,8 @@ function finishWorkout(){
       " starts now — every load you've logged carries over."
     : !counted
     ? "Mostly skipped, so it's still up next. Log anything you did do below."
+    : state.flare
+    ? "Cranky Back Mode session done. Check how your back feels tomorrow morning before the next one."
     : "Block " + state.block + " · Week " + currentWeek + " · " +
       sessionName(currentDay) +
       " — another session your back stayed happy through.";
@@ -2313,6 +2405,13 @@ el.dayTabs.addEventListener("click", e => {
   if(tab) pickDay(tab);
 });
 tabKeyNav(el.dayTabs, pickDay);
+
+el.flareBtn.addEventListener("click", () => {
+  state.flare = !state.flare;
+  saveState();
+  renderOverview();
+  toast(state.flare ? "Cranky Back Mode on" : "Back to the full program");
+});
 
 el.startBtn.addEventListener("click", startWorkout);
 el.elsewhereBtn.addEventListener("click", markDoneElsewhere);

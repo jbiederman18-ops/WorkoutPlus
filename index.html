@@ -1044,7 +1044,7 @@ const WEEK_PLAN = {
    The same primer also runs on its own as the optional off-day session. */
 const PRIMER = [
   {id:"p-bird",name:"Bird-Dogs",desc:"Abs tight. Reach the leg out straight, hold 2–3 seconds, bring it in, then switch sides.",duration:60,rest:10,isPrimer:true,safetyTip:"Be really stable. Don't shift your pelvis and don't rock left to right at all.",effort:"Hold each rep 2–3 seconds, then bring it in and switch sides."},
-  {id:"p-curl",name:"Curl-Ups, Right Leg Up",desc:"On your back, fingers laced under your lower back, right leg lifted. Crunch up and hold 3 seconds.",duration:45,rest:10,isPrimer:true,safetyTip:"Suck your belly in first, then crunch. Don't push down into your elbows.",effort:"Make it hard. Raise or lower the right leg to change the difficulty."},
+  {id:"p-curl",name:"Curl-Ups",desc:"On your back, fingers laced under your lower back, one leg lifted. Crunch up and hold 3 seconds.",duration:45,rest:10,perSide:true,sides:["Right Leg Up","Left Leg Up"],isPrimer:true,safetyTip:"Suck your belly in first, then crunch. Don't push down into your elbows.",effort:"Make it hard. Raise or lower the lifted leg to change the difficulty."},
   {id:"p-side",name:"Easy Side Plank",desc:"From your knees. Straight line from your head to your knees, elbow stacked right under your shoulder.",duration:45,rest:10,perSide:true,isPrimer:true,safetyTip:"Suck your belly in and feel it work all through the oblique on your underside.",effort:"Hold 45 seconds. Stop if the sore side of your hip hurts during the hold."},
   {id:"p-tap",name:"Plank Elbow Taps",desc:"High plank, feet fairly wide. Tap the crook of the opposite elbow, alternating hands.",duration:40,rest:15,isPrimer:true,safetyTip:"Squeeze the opposite glute: right hand lifts, left glute squeezes. Stay super stable.",effort:"Too easy? Bring your feet closer together."}
 ];
@@ -1385,7 +1385,8 @@ function buildSequence(week, day){
         const step = m.step;
         if(r > (step.rounds || 1)) return;
 
-        const sides = step.perSide ? ["Left","Right"] : [null];
+        // `sides` overrides the label and order, e.g. the curl-up's right leg first.
+        const sides = step.perSide ? (step.sides || ["Left","Right"]) : [null];
         const rest = step.rest || 0;
 
         sides.forEach((side, si) => {

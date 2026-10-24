@@ -903,7 +903,7 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
         <div class="cue">
           <div class="cue__icon"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></div>
           <div>
-            <span class="cue__label">Back Protection Cue</span>
+            <span id="cue-label" class="cue__label">Back Protection Cue</span>
             <p id="cue-text" class="cue__text"></p>
             <p id="cue-effort" class="cue__effort" hidden></p>
           </div>
@@ -1019,23 +1019,24 @@ const ICONS = {
 };
 
 /* Each week runs the same four sessions. Only the working-set count changes,
-   because the progression lever is load, not structure. Week 4 adds more
-   ten-second primer holds as the spine-endurance retest. */
+   because the progression lever is load, not structure. The coach's primer
+   runs the same timings every week. */
 const WEEK_PLAN = {
   1:{ sets:3, progression:"Calibrate. Three working sets while you settle into four days a week. The suitcase carry, split squats and one-arm rows are new, so start them conservatively." },
   2:{ sets:4, progression:"Climb. Four working sets. Any lift where you hit the top of the rep range on every set gets the smallest increment you own next session." },
   3:{ sets:4, progression:"Climb. Identical to week 2 on purpose. The only thing that should change is the weight written in your log." },
-  4:{ sets:3, progression:"Consolidate. Hold your week 3 weights and drop back to three sets. The spine primer gets more ten-second holds this week as your endurance retest." }
+  4:{ sets:3, progression:"Consolidate. Hold your week 3 weights and drop back to three sets. Use the lighter week to make the primer harder: raise the curl-up leg and narrow your feet on the elbow taps." }
 };
 
-/* The McGill Big 3, opening every session. Short holds before training
-   switch the stabilisers on without tiring them out ahead of the lifts.
-   Endurance is built by repeating ten-second holds, never one long hold. */
+/* The coach's primer, opening every session, in the order he coached it:
+   bird-dogs, leg-raised curl-ups, easy side plank, elbow taps. safetyTip is
+   his main cue and `effort` carries his second one, so both show on screen.
+   The side-hip wall press stays on the end for the irritated hip tendon. */
 const PRIMER = [
-  {name:"Cat-Camel & Hip Circles",desc:"Slow cat-camel cycles, then hip circles and ankle rocks",duration:75,rest:10,isWarmup:true,safetyTip:"A mobility primer, not a stretch. Stay well inside your range."},
-  {id:"p-curl",name:"McGill Curl-Ups",desc:"Hands under your lower back, one knee bent. Ten-second holds.",duration:40,rest:10,isPrimer:true,weekDuration:{4:60},safetyTip:"Don't lift your lower back off your hands. Minimal motion is enough."},
-  {id:"p-side",name:"Side Plank",desc:"From your knees while the side of your hip is sore. Ten-second holds, short breath between.",duration:25,rest:10,perSide:true,isPrimer:true,weekDuration:{4:40},safetyTip:"Trains the quadratus lumborum and the side glutes. Stop if the side of your hip hurts during the hold."},
-  {id:"p-bird",name:"Bird-Dogs",desc:"Opposite arm and leg, ten-second holds, alternate sides",duration:40,rest:15,isPrimer:true,weekDuration:{4:60},safetyTip:"Imagine balancing a glass of water on your lower back."},
+  {id:"p-bird",name:"Bird-Dogs",desc:"Abs tight. Reach the leg out straight, hold 2–3 seconds, bring it in, then switch sides.",duration:60,rest:10,isPrimer:true,safetyTip:"Be really stable. Don't shift your pelvis and don't rock left to right at all.",effort:"Hold each rep 2–3 seconds, then bring it in and switch sides."},
+  {id:"p-curl",name:"Curl-Ups, Right Leg Up",desc:"On your back, fingers laced under your lower back, right leg lifted. Crunch up and hold 3 seconds.",duration:45,rest:10,isPrimer:true,safetyTip:"Suck your belly in first, then crunch. Don't push down into your elbows.",effort:"Make it hard. Raise or lower the right leg to change the difficulty."},
+  {id:"p-side",name:"Easy Side Plank",desc:"From your knees. Straight line from your head to your knees, elbow stacked right under your shoulder.",duration:45,rest:10,perSide:true,isPrimer:true,safetyTip:"Suck your belly in and feel it work all through the oblique on your underside.",effort:"Hold 45 seconds. Stop if the sore side of your hip hurts during the hold."},
+  {id:"p-tap",name:"Plank Elbow Taps",desc:"High plank, feet fairly wide. Tap the crook of the opposite elbow, alternating hands.",duration:40,rest:15,isPrimer:true,safetyTip:"Squeeze the opposite glute: right hand lifts, left glute squeezes. Stay super stable.",effort:"Too easy? Bring your feet closer together."},
   {id:"p-hip",name:"Side-Hip Wall Press",desc:"Stand side-on to a wall, lift the near knee and press it into the wall. Standing leg does the work.",duration:30,rest:10,perSide:true,isPrimer:true,safetyTip:"Hips stay level, standing knee soft. A steady press calms an irritated side-hip tendon."}
 ];
 
@@ -1425,6 +1426,7 @@ function repLabel(step){
 
 const PROGRESSION_CUE = "Hit the top of the range on every set? Add the smallest increment you own next session.";
 function effortCue(step){
+  if(step.isPrimer) return step.effort || "";   // the coach's second cue, flare or not
   if(state.flare && (step.reps || step.effort)) return FLARE_CUE;
   if(step.effort) return step.effort;
   return step.reps ? PROGRESSION_CUE : "";
@@ -1470,6 +1472,7 @@ const el = {
   upnext:   $("upnext"),
   upnextTitle:$("upnext-title"),
   upnextDesc:$("upnext-desc"),
+  cueLabel: $("cue-label"),
   cueText:  $("cue-text"),
   cueEffort:$("cue-effort"),
   setline:  $("setline"),
@@ -2038,6 +2041,7 @@ function enterStep(i, live){
   el.phaseBadge.textContent = phase.label;
   el.stepName.textContent = step.name;
   el.stepDesc.textContent = step.desc;
+  el.cueLabel.textContent = step.kind === "prime" ? "Coach's Cue" : "Back Protection Cue";
   el.cueText.textContent = step.safetyTip;
   el.cueEffort.textContent = step.effort || "";
   el.cueEffort.hidden = !step.effort;

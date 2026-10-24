@@ -241,7 +241,11 @@ main{flex:1;display:flex;flex-direction:column;padding:0 16px}
   text-transform:uppercase;line-height:1;
   color:var(--ink-60);
 }
-.tabs--day .tab{padding-bottom:15px}
+.tabs--day .tab{padding-bottom:15px;min-width:0;font-size:15px}
+/* Five day tabs share the row now, so the selected one takes the day's
+   on-accent colour: paper on the dark grape of the primer tab. */
+.tabs--day .tab[aria-selected="true"],
+.tabs--day .tab[aria-selected="true"] .tab__today{color:var(--on-accent)}
 .tab[aria-selected="true"] .tab__today{color:var(--ink)}
 
 /* =================================================================== *
@@ -424,7 +428,7 @@ body.is-running .cta-dock{background:none}
   width:100%;display:flex;align-items:center;justify-content:center;gap:10px;
   padding:15px;
   border:3px solid var(--ink);
-  background:var(--accent);color:var(--ink);
+  background:var(--accent);color:var(--on-accent);
   box-shadow:var(--shadow);
   font-family:var(--display);font-size:25px;letter-spacing:.03em;
   transition:transform .08s,box-shadow .08s;
@@ -709,6 +713,8 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
   .daycard h2{font-size:26px}
   .stage h2{font-size:24px}
   .tab{font-size:15px}
+  .tabs--day{gap:4px}
+  .tabs--day .tab{font-size:12.5px}
 }
 
 /* Short screens: shrink the dial rather than let the End button scroll away. */
@@ -1008,8 +1014,12 @@ const DAYS = [
   { key:"Up",   label:"Upper",  name:"Upper Body" },
   { key:"Lo",   label:"Lower",  name:"Lower Body" },
   { key:"Full", label:"Full",   name:"Full Body" },
-  { key:"Cond", label:"Engine", name:"Conditioning" }
+  { key:"Cond", label:"Engine", name:"Conditioning" },
+  // Optional: up to three a week on off days. Never gates the week or block.
+  { key:"Prime", label:"Primer", name:"Spine Primer", optional:true }
 ];
+const PRIMER_DAY = "Prime";
+const PRIMER_GOAL = 3;
 
 const PLAN_ID = "4day";
 
@@ -1031,13 +1041,12 @@ const WEEK_PLAN = {
 /* The coach's primer, opening every session, in the order he coached it:
    bird-dogs, leg-raised curl-ups, easy side plank, elbow taps. safetyTip is
    his main cue and `effort` carries his second one, so both show on screen.
-   The side-hip wall press stays on the end for the irritated hip tendon. */
+   The same primer also runs on its own as the optional off-day session. */
 const PRIMER = [
   {id:"p-bird",name:"Bird-Dogs",desc:"Abs tight. Reach the leg out straight, hold 2–3 seconds, bring it in, then switch sides.",duration:60,rest:10,isPrimer:true,safetyTip:"Be really stable. Don't shift your pelvis and don't rock left to right at all.",effort:"Hold each rep 2–3 seconds, then bring it in and switch sides."},
   {id:"p-curl",name:"Curl-Ups, Right Leg Up",desc:"On your back, fingers laced under your lower back, right leg lifted. Crunch up and hold 3 seconds.",duration:45,rest:10,isPrimer:true,safetyTip:"Suck your belly in first, then crunch. Don't push down into your elbows.",effort:"Make it hard. Raise or lower the right leg to change the difficulty."},
   {id:"p-side",name:"Easy Side Plank",desc:"From your knees. Straight line from your head to your knees, elbow stacked right under your shoulder.",duration:45,rest:10,perSide:true,isPrimer:true,safetyTip:"Suck your belly in and feel it work all through the oblique on your underside.",effort:"Hold 45 seconds. Stop if the sore side of your hip hurts during the hold."},
-  {id:"p-tap",name:"Plank Elbow Taps",desc:"High plank, feet fairly wide. Tap the crook of the opposite elbow, alternating hands.",duration:40,rest:15,isPrimer:true,safetyTip:"Squeeze the opposite glute: right hand lifts, left glute squeezes. Stay super stable.",effort:"Too easy? Bring your feet closer together."},
-  {id:"p-hip",name:"Side-Hip Wall Press",desc:"Stand side-on to a wall, lift the near knee and press it into the wall. Standing leg does the work.",duration:30,rest:10,perSide:true,isPrimer:true,safetyTip:"Hips stay level, standing knee soft. A steady press calms an irritated side-hip tendon."}
+  {id:"p-tap",name:"Plank Elbow Taps",desc:"High plank, feet fairly wide. Tap the crook of the opposite elbow, alternating hands.",duration:40,rest:15,isPrimer:true,safetyTip:"Squeeze the opposite glute: right hand lifts, left glute squeezes. Stay super stable.",effort:"Too easy? Bring your feet closer together."}
 ];
 
 /* A `flare` block on a step is the swap Cranky Back Mode makes. A new id
@@ -1105,6 +1114,13 @@ const SESSIONS = {
         flare:{id:"c-deadbug",name:"Dead Bugs",desc:"On your back, slowly lower the opposite arm and leg",safetyTip:"Keep your lower back gently pressed into the floor the whole time."}},
       {name:"Cool-Down Stretch",desc:"Lying strap hamstring stretch, then half-kneeling hip flexor stretch",duration:150,rest:0,isCooldown:true,safetyTip:"Lower back stays flat on the floor for the hamstrings. Tuck the tailbone for the hip flexors."}
     ]
+  },
+
+  Prime:{
+    title:"Spine Primer", focus:"Optional · Off Days", icon:"core",
+    desc:"Just the coach's primer, no weights. Fit in up to three a week on off days.",
+    safety:"Optional. Skipping these never holds up your week or your block.",
+    steps:[ ...PRIMER ]
   }
 };
 
@@ -1182,7 +1198,15 @@ const defaultState = () => ({
   logs:{}         // slot id -> { load, date, week, day }
 });
 
-const TRAINING_DAYS = DAYS;
+const TRAINING_DAYS = DAYS.filter(d => !d.optional);
+
+/* Optional primer sessions are stored as "b2-w1-Prime-1", "-2", ... so a week
+   can hold several. They sit outside SLOTS, so they never gate anything. */
+function primerCount(week){
+  const prefix = doneKey(week, PRIMER_DAY) + "-";
+  return Object.keys(state.completed).filter(k => k.startsWith(prefix)).length;
+}
+function primerKey(week, n){ return doneKey(week, PRIMER_DAY) + "-" + n; }
 const TOTAL_SESSIONS = 4 * TRAINING_DAYS.length;
 const LEGACY_SESSIONS = 20;   // the original five-day block
 
@@ -1416,6 +1440,8 @@ function buildSequence(week, day){
       item.safetyTip = REST_TIP;
     }
   });
+  // A session that ends on a primer hold has nothing to rest for.
+  while(seq.length && seq[seq.length - 1].kind === "rest") seq.pop();
   return seq;
 }
 
@@ -1727,7 +1753,9 @@ function buildTabs(){
 }
 
 const weekIsComplete = w => TRAINING_DAYS.every(d => state.completed[doneKey(w, d.key)]);
-const dayIsComplete = (w,d) => Boolean(state.completed[doneKey(w, d)]);
+const dayIsComplete = (w,d) => d === PRIMER_DAY
+  ? primerCount(w) >= PRIMER_GOAL
+  : Boolean(state.completed[doneKey(w, d)]);
 
 function renderTabs(){
   const next = nextUp();
@@ -1763,6 +1791,15 @@ function renderTabs(){
       tab.appendChild(dot);
     }
     const isNext = next.week === currentWeek && next.day === d;
+    if(d === PRIMER_DAY){
+      const n = primerCount(currentWeek);
+      const t = document.createElement("span");
+      t.className = "tab__today";
+      t.textContent = Math.min(n, PRIMER_GOAL) + "/" + PRIMER_GOAL;
+      tab.appendChild(t);
+      tab.setAttribute("aria-label", "Optional spine primer, " + n + " of " + PRIMER_GOAL + " done this week");
+      return;
+    }
     if(isNext){
       const t = document.createElement("span");
       t.className = "tab__today";
@@ -1809,6 +1846,14 @@ function renderOverview(){
 
   renderExerciseList(data);
   renderTabs();
+
+  if(currentDay === PRIMER_DAY){
+    const n = primerCount(currentWeek);
+    el.seqMeta.textContent = n + " of " + PRIMER_GOAL + " this week";
+    el.startLabel.textContent = n >= PRIMER_GOAL ? "Bonus Primer" : "Start Primer";
+    el.elsewhereBtn.textContent = n >= PRIMER_GOAL ? "Mark one as not done" : "Did this on another device";
+    return;
+  }
 
   const complete = dayIsComplete(currentWeek, currentDay);
   el.startLabel.textContent = complete ? "Run It Again" : "Start Routine";
@@ -2210,7 +2255,9 @@ function finishWorkout(){
   setTimeout(releaseAudio, 900);
   buzz([80,60,80,60,160]);
 
-  const key = doneKey(currentWeek, currentDay);
+  const isPrimerDay = currentDay === PRIMER_DAY;
+  const key = isPrimerDay ? primerKey(currentWeek, primerCount(currentWeek) + 1)
+                          : doneKey(currentWeek, currentDay);
   if(counted && !state.completed[key]) state.completed[key] = todayISO();
   state.week = currentWeek;
   const finishedBlock = counted && blockIsComplete() ? state.block : 0;
@@ -2221,7 +2268,12 @@ function finishWorkout(){
   const sets = sequence.filter(s => s.kind === "work").length;
 
   el.doneTitle.textContent = counted ? data.title + " Done" : "Session Not Counted";
-  el.doneSub.textContent = finishedBlock
+  el.doneSub.textContent = isPrimerDay
+    ? (primerCount(currentWeek) > PRIMER_GOAL
+        ? "Bonus primer. All " + PRIMER_GOAL + " optional ones are already done this week."
+        : "Optional primer " + primerCount(currentWeek) + " of " + PRIMER_GOAL + " this week.") +
+      " Your next training session is still waiting for you."
+    : finishedBlock
     ? "Block " + finishedBlock + " complete. Block " + (finishedBlock + 1) +
       " starts now — every load you've logged carries over."
     : !counted
@@ -2232,7 +2284,7 @@ function finishWorkout(){
       sessionName(currentDay) +
       " — another session your back stayed happy through.";
   el.statTime.textContent = formatClock(elapsedSec);
-  el.statSets.textContent = sets;
+  el.statSets.textContent = isPrimerDay ? "—" : sets;
   el.statStreak.textContent = blockDone() + "/" + SLOTS.length;
 
   buildLogForm(data);
@@ -2254,6 +2306,22 @@ function finishWorkout(){
    somewhere else, then offers the usual log screen so loads stay current.
    The same link undoes a mark made by mistake. */
 function markDoneElsewhere(){
+  if(currentDay === PRIMER_DAY){
+    const n = primerCount(currentWeek);
+    if(n >= PRIMER_GOAL){
+      if(!confirm("Remove one optional primer from week " + currentWeek + "?")) return;
+      delete state.completed[primerKey(currentWeek, n)];
+      toast("Primer removed");
+    }else{
+      if(!confirm("Mark one optional primer as done on another device?")) return;
+      state.completed[primerKey(currentWeek, n + 1)] = todayISO();
+      toast("Primer " + (n + 1) + " of " + PRIMER_GOAL + " logged");
+    }
+    saveState();
+    renderOverview();
+    return;
+  }
+
   const key = doneKey(currentWeek, currentDay);
   const label = sessionName(currentDay) + " (week " + currentWeek + ")";
 
@@ -2295,7 +2363,9 @@ function buildLogForm(data){
   if(!mains.length){
     const p = document.createElement("p");
     p.className = "progression";
-    p.textContent = "Nothing to log on a recovery day. Rest well.";
+    p.textContent = currentDay === PRIMER_DAY
+      ? "Nothing to log for the primer. Nice work keeping your back switched on."
+      : "Nothing to log on a recovery day. Rest well.";
     el.logform.appendChild(p);
     return;
   }

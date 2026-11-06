@@ -1,10 +1,10 @@
-name = "spinesafe-push"
+name = "workoutplus"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
 
 [vars]
-# Apple wants a real contact address here. Change before deploying.
-VAPID_SUBJECT = "mailto:you@example.com"
+# Contact for push services: a mailto: address or an https URL.
+VAPID_SUBJECT = "https://jbiederman18-ops.github.io/WorkoutPlus/"
 # Your GitHub Pages origin: scheme and host only, no path or trailing slash.
 ALLOWED_ORIGIN = "https://jbiederman18-ops.github.io"
 

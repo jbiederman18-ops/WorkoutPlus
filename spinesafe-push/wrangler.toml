@@ -1,0 +1,17 @@
+name = "spinesafe-push"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+# Apple wants a real contact address here. Change before deploying.
+VAPID_SUBJECT = "mailto:you@example.com"
+# Your GitHub Pages origin: scheme and host only, no path or trailing slash.
+ALLOWED_ORIGIN = "https://jbiederman18-ops.github.io"
+
+[[durable_objects.bindings]]
+name = "TIMER"
+class_name = "PushTimer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PushTimer"]

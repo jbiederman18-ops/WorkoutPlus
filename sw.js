@@ -1,3 +1,5 @@
+importScripts("push-sw.js");   // away alerts: push + notification handling
+
 /* SpineSafe service worker.
  * Optional: index.html works fine without it, but dropping this file
  * alongside index.html on a real host (Netlify, GitHub Pages) makes the
@@ -5,7 +7,7 @@
  *
  * Bump CACHE whenever you edit index.html, or the old copy will stick around.
  */
-const CACHE  = "spinesafe-v9";
+const CACHE  = "spinesafe-v10";
 const PREFIX = "spinesafe-";   // only ever touch our own caches
 const ASSETS = [
   "./",
@@ -57,6 +59,8 @@ self.addEventListener("activate", event => {
  * online, with the cached copy as the fallback in a signal-free gym. */
 self.addEventListener("fetch", event => {
   if(event.request.method !== "GET") return;
+  // Leave other sites alone, including the away-alerts Worker.
+  if(new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith(
     fetch(event.request)
       .then(res => {

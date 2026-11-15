@@ -85,7 +85,7 @@ body{
   transition:background-color .35s ease;
 }
 
-button,input{font:inherit;color:inherit}
+button,input,select{font:inherit;color:inherit}
 button{
   background:none;border:0;margin:0;padding:0;cursor:pointer;
   -webkit-user-select:none;user-select:none;touch-action:manipulation;
@@ -413,6 +413,10 @@ main{flex:1;display:flex;flex-direction:column;padding:0 16px}
   font-size:16px;font-weight:600;
   -webkit-user-select:text;user-select:text;
 }
+.program-picker{display:grid;gap:5px;margin-bottom:12px}
+.flare[hidden],.cue[hidden]{display:none}
+.program-picker label{color:var(--ink)}
+.program-picker select{min-height:44px}
 .field::placeholder{color:var(--ink-38);font-weight:500}
 .field:focus{outline:3px solid var(--accent);outline-offset:-1px}
 
@@ -468,6 +472,11 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
 
 .timeline{display:flex;gap:2px;height:8px;margin-top:10px;
   border:2px solid var(--on-phase);padding:1px}
+.timeline--continuous{display:block;width:100%;appearance:none;background:transparent;color:var(--on-phase)}
+.timeline[hidden]{display:none}
+.timeline--continuous::-webkit-progress-bar{background:transparent}
+.timeline--continuous::-webkit-progress-value{background:var(--on-phase)}
+.timeline--continuous::-moz-progress-bar{background:var(--on-phase)}
 .timeline__seg{background:transparent;min-width:1px;transition:background .2s}
 .timeline__seg.is-done{background:color-mix(in srgb,var(--on-phase) 45%,transparent)}
 .timeline__seg.is-now{background:var(--on-phase)}
@@ -799,6 +808,14 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
     <!-- ===================== OVERVIEW ===================== -->
     <section id="view-overview" class="view is-active">
 
+      <div class="program-picker">
+        <label class="eyebrow" for="program-select">Program</label>
+        <select id="program-select" class="field">
+          <option value="strength">SpineSafe Recomp</option>
+          <option value="hiit">4-Week Dumbbell HIIT</option>
+        </select>
+      </div>
+
       <div class="selector">
         <div class="selector__head">
           <span class="eyebrow">Week</span>
@@ -871,6 +888,7 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
         </button>
       </div>
       <div id="timeline" class="timeline" aria-hidden="true"></div>
+      <progress id="session-progress" class="timeline timeline--continuous" aria-label="Workout progress" hidden></progress>
 
       <div class="stage">
         <span id="phase-badge" class="phase"><span>Work</span></span>
@@ -893,7 +911,7 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
                     stroke-dasharray="263.89" stroke-dashoffset="0"/>
           </svg>
           <div class="ring__label">
-            <span id="ring-time" class="ring__time" aria-hidden="true">0:00</span>
+            <span id="ring-time" class="ring__time" role="timer" aria-label="Interval time remaining">0:00</span>
             <span id="ring-sub" class="ring__sub">remaining</span>
           </div>
         </div>
@@ -927,11 +945,11 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
         </button>
         <button id="add-btn" class="ctrl">
           <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>
-          <span>15s</span>
+          <span id="add-label">15s</span>
         </button>
         <button id="next-btn" class="ctrl">
           <svg class="icon" aria-hidden="true"><use href="#i-next"/></svg>
-          <span>Skip</span>
+          <span id="next-label">Skip</span>
         </button>
       </div>
 
@@ -950,7 +968,7 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
         <div class="stats">
           <div class="stat"><div id="stat-time" class="stat__val">—</div><div class="stat__key">Time</div></div>
           <div class="stat"><div id="stat-sets" class="stat__val">—</div><div class="stat__key">Sets</div></div>
-          <div class="stat"><div id="stat-streak" class="stat__val">—</div><div class="stat__key">Block</div></div>
+          <div class="stat"><div id="stat-streak" class="stat__val">—</div><div id="stat-progress-label" class="stat__key">Block</div></div>
         </div>
 
         <div class="section-title">
@@ -1202,6 +1220,48 @@ const defaultState = () => ({
 });
 
 const TRAINING_DAYS = DAYS.filter(d => !d.optional);
+let hiitProgram;
+let hiitActive = false;
+let loadingProgram = false;
+
+const programDays = () => hiitActive ? hiitProgram.days : DAYS;
+const programSlots = () => hiitActive ? hiitProgram.slots : SLOTS;
+const hiitWorkout = (week, day) => hiitProgram.workouts.get(week + "-" + day);
+
+async function selectProgram(){
+  if(loadingProgram || running) return;
+  const useHiit = el.programSelect.value === "hiit";
+  if(useHiit && !hiitProgram){
+    loadingProgram = true;
+    el.startBtn.disabled = true;
+    el.elsewhereBtn.disabled = true;
+    el.programSelect.setAttribute("aria-busy", "true");
+    try{
+      const response = await fetch("hiit-program.json");
+      if(!response.ok) throw new Error("Could not load HIIT program");
+      const {program, workouts} = await response.json();
+      hiitProgram = {
+        days: program.weeklySchedule.map(day => ({ key:day, name:day, label:day.slice(0,3) })),
+        slots: workouts.map(w => ({ week:w.week, day:w.scheduledDay })),
+        workouts: new Map(workouts.map(w => [w.week + "-" + w.scheduledDay, w]))
+      };
+    }catch(e){
+      el.programSelect.value = "strength";
+      toast("Couldn’t load Dumbbell HIIT. Try again.");
+      return;
+    }finally{
+      loadingProgram = false;
+      el.startBtn.disabled = false;
+      el.elsewhereBtn.disabled = false;
+      el.programSelect.removeAttribute("aria-busy");
+    }
+  }
+  hiitActive = el.programSelect.value === "hiit";
+  goToNextUp();
+  buildTabs();
+  renderOverview();
+  renderStreak();
+}
 
 /* Optional primer sessions are stored as "b2-w1-Prime-1", "-2", ... so a week
    can hold several. They sit outside SLOTS, so they never gate anything. */
@@ -1216,6 +1276,7 @@ const LEGACY_SESSIONS = 20;   // the original five-day block
 /* Completion is scoped to a block so a new cycle starts with a clean board,
    while state.logs — the load history — is deliberately never touched. */
 function doneKey(week, day){ return "b" + state.block + "-w" + week + "-" + day; }
+function sessionKey(week, day){ return hiitActive ? hiitWorkout(week, day).id : doneKey(week, day); }
 
 function blockIsComplete(){
   for(let w=1; w<=4; w++){
@@ -1296,33 +1357,58 @@ for(let w=1; w<=4; w++) TRAINING_DAYS.forEach(d => SLOTS.push({ week:w, day:d.ke
    the queue waits, and a deliberately skipped session stays skipped rather
    than dragging the default back to it forever. */
 function nextUp(){
+  const slots = programSlots();
+  const complete = ({week, day}) => state.completed[sessionKey(week, day)];
   let furthest = -1;
-  SLOTS.forEach((s,i) => { if(state.completed[doneKey(s.week, s.day)]) furthest = i; });
-  for(let i = furthest + 1; i < SLOTS.length; i++){
-    if(!state.completed[doneKey(SLOTS[i].week, SLOTS[i].day)]) return SLOTS[i];
-  }
-  for(let i = 0; i < SLOTS.length; i++){
-    if(!state.completed[doneKey(SLOTS[i].week, SLOTS[i].day)]) return SLOTS[i];
-  }
-  return SLOTS[0];
+  slots.forEach((slot, index) => { if(complete(slot)) furthest = index; });
+  return slots.slice(furthest + 1).find(s => !complete(s)) ||
+    slots.find(s => !complete(s)) || slots[0];
 }
 function goToNextUp(){
   const n = nextUp();
   currentWeek = n.week;
   currentDay = n.day;
 }
-const sessionName = key => DAYS.find(d => d.key === key).name;
+const sessionName = key => programDays().find(d => d.key === key).name;
 
 /* A calendar-day streak can't survive rest days, so the badge tracks
    progress through the block instead. */
 function blockDone(){
-  return SLOTS.filter(s => state.completed[doneKey(s.week, s.day)]).length;
+  return programSlots().filter(s => state.completed[sessionKey(s.week, s.day)]).length;
 }
 
 /* =================================================================== *
  * 3. DERIVED PROGRAM HELPERS
  * =================================================================== */
+const HIIT_CUE = "Use lighter dumbbells or bodyweight as needed.";
+const hiitLoadKey = name => "hiit-load:" + name;
+const HIIT_KINDS = { warmup:"warm", work:"work", rest:"rest", cooldown:"cool" };
+
+function hiitDayData(workout){
+  return {
+    icon:"cardio",
+    focus:workout.scheduledDay + " · Dumbbell HIIT",
+    title:workout.title,
+    desc:"Equipment: " + workout.equipment.join(", ") + ".",
+    safety:HIIT_CUE,
+    steps:[
+      ...workout.warmup.map(name => ({ name, desc:"Warm-up", duration:60, isWarmup:true })),
+      ...workout.circuits.flatMap(circuit => circuit.exercises.map(name => ({
+        id:hiitLoadKey(name),
+        name,
+        desc:"Circuit " + circuit.number,
+        rounds:circuit.repeatCount,
+        duration:workout.workSeconds,
+        rest:workout.restSeconds,
+        logLoad:/Dumbbell|^Hammer Curls$/.test(name)
+      }))),
+      ...workout.cooldown.map(name => ({ name, desc:"Cool-down", duration:60, isCooldown:true }))
+    ]
+  };
+}
+
 function dayData(week, day){
+  if(hiitActive) return hiitDayData(hiitWorkout(week, day));
   const base = PROGRAM[week].days[day];
   if(!state.flare) return base;
   return Object.assign({}, base, { safety:FLARE_SAFETY, steps: base.steps.map(applyFlare) });
@@ -1335,7 +1421,7 @@ const COOLDOWN_TRANSITION = 15;   // longest rest allowed right before a cool-do
    week 1 and "Floor Press (Pause Sets)" in week 4 share one history. */
 function logKey(step){ return step.id || step.name; }
 function readLog(step){
-  return state.logs[logKey(step)] || (step.id ? state.logs[step.name] : null) || null;
+  return state.logs[logKey(step)] || (!hiitActive && step.id ? state.logs[step.name] : null) || null;
 }
 function dayTotalSeconds(week, day){
   return buildSequence(week, day).reduce((sum,s)=>sum + s.duration, 0);
@@ -1362,6 +1448,16 @@ const REST_TIP = "Keep moving. Walk a lap or march in place instead of standing 
  * carrying enough metadata to label each interval meaningfully.
  */
 function buildSequence(week, day){
+  if(hiitActive){
+    return hiitWorkout(week, day).intervals.map(interval => ({
+      kind:HIIT_KINDS[interval.phase],
+      name:interval.label,
+      duration:interval.durationSeconds,
+      desc:interval.phase === "work" ? "Circuit " + interval.circuit + " · Round " + interval.repeat : "",
+      safetyTip:interval.phase === "work" ? HIIT_CUE : "",
+      logId:interval.phase === "work" ? hiitLoadKey(interval.label) : null
+    }));
+  }
   const data = dayData(week, day);
   const seq = [];
   const mainSteps = data.steps.filter(s => stepKind(s) === "work");
@@ -1468,6 +1564,7 @@ function effortCue(step){
 const $ = id => document.getElementById(id);
 
 const el = {
+  programSelect:$("program-select"),
   weekTabs:   document.querySelector(".tabs--week"),
   dayTabs:    document.querySelector(".tabs--day"),
   weekMeta:   $("week-meta"),
@@ -1493,6 +1590,7 @@ const el = {
   runCount: $("run-count"),
   runLeft:  $("run-left"),
   timeline: $("timeline"),
+  sessionProgress:$("session-progress"),
   phaseBadge:$("phase-badge").querySelector("span"),
   stepName: $("step-name"),
   stepDesc: $("step-desc"),
@@ -1504,6 +1602,7 @@ const el = {
   upnextDesc:$("upnext-desc"),
   cueLabel: $("cue-label"),
   cueText:  $("cue-text"),
+  cue:      $("cue-text").closest(".cue"),
   cueEffort:$("cue-effort"),
   setline:  $("setline"),
   setlineSet:$("setline-set"),
@@ -1520,13 +1619,17 @@ const el = {
   pauseIcon:$("pause-icon").querySelector("use"),
   pauseLabel:$("pause-label"),
   addBtn:   $("add-btn"),
+  addLabel: $("add-label"),
+  addIcon:  $("add-btn").querySelector("use"),
   nextBtn:  $("next-btn"),
+  nextLabel:$("next-label"),
 
   doneTitle:$("done-title"),
   doneSub:  $("done-sub"),
   statTime: $("stat-time"),
   statSets: $("stat-sets"),
   statStreak:$("stat-streak"),
+  statProgressLabel:$("stat-progress-label"),
   logform:  $("logform"),
   doneBtn:  $("done-btn"),
 
@@ -1718,7 +1821,12 @@ let pausedRemaining = null; // ms held while paused
 let ticker = null;
 let running = false;
 let lastAnnouncedSecond = -1;
-let workoutStartedAt = 0;
+let workoutStartedAt = 0;  // legacy wall-clock time for strength sessions
+let hiitElapsedBeforeResume = 0;
+let hiitResumedAt = 0;
+const timerNow = () => hiitActive ? performance.now() : Date.now();
+const hiitElapsed = (now = timerNow()) => hiitElapsedBeforeResume +
+  (pausedRemaining === null ? now - hiitResumedAt : 0);
 let creditedSets = new Set();   // work intervals actually trained, by index
 
 /* A work interval counts once at least half of it ran. Called whenever the
@@ -1747,7 +1855,7 @@ function buildTabs(){
     el.weekTabs.appendChild(b);
   }
   el.dayTabs.innerHTML = "";
-  DAYS.forEach(d => {
+  programDays().forEach(d => {
     const b = document.createElement("button");
     b.className = "tab"; b.type = "button";
     b.setAttribute("role","tab");
@@ -1757,10 +1865,10 @@ function buildTabs(){
   });
 }
 
-const weekIsComplete = w => TRAINING_DAYS.every(d => state.completed[doneKey(w, d.key)]);
+const weekIsComplete = w => programDays().filter(d => !d.optional).every(d => dayIsComplete(w, d.key));
 const dayIsComplete = (w,d) => d === PRIMER_DAY
   ? primerCount(w) >= PRIMER_GOAL
-  : Boolean(state.completed[doneKey(w, d)]);
+  : Boolean(state.completed[sessionKey(w, d)]);
 
 function renderTabs(){
   const next = nextUp();
@@ -1795,7 +1903,7 @@ function renderTabs(){
       dot.className = "tab__dot";
       tab.appendChild(dot);
     }
-    const isNext = next.week === currentWeek && next.day === d;
+    const isNext = next.week === currentWeek && next.day === d && (!hiitActive || !done);
     if(d === PRIMER_DAY){
       const n = primerCount(currentWeek);
       const t = document.createElement("span");
@@ -1832,22 +1940,28 @@ function renderFlare(){
 function renderOverview(){
   const data = dayData(currentWeek, currentDay);
   applyAccent(data.icon);
-  renderFlare();
+  el.flareBtn.hidden = hiitActive;
+  if(!hiitActive) renderFlare();
 
   el.weekMeta.textContent = currentWeek + " of 4";
-  el.blockLabel.textContent = "Block " + state.block + " · 4 Days a Week";
+  el.blockLabel.textContent = hiitActive
+    ? "4-Week Dumbbell HIIT" : "Block " + state.block + " · 4 Days a Week";
   el.dayGlyph.setAttribute("href", "#" + ICONS[data.icon]);
   el.dayFocus.textContent = data.focus;
   el.dayDuration.textContent = formatDuration(dayTotalSeconds(currentWeek, currentDay));
   el.dayTitle.textContent = data.title;
   el.dayDesc.textContent = data.desc;
   el.daySafety.textContent = data.safety;
-  el.progression.innerHTML = "<b>Week " + currentWeek + "</b>" +
-    escapeHtml(state.flare ? FLARE_PROGRESSION : PROGRAM[currentWeek].progression);
+  const workout = hiitActive ? hiitWorkout(currentWeek, currentDay) : null;
+  const progression = workout
+    ? workout.workSeconds + "s work / " + workout.restSeconds + "s rest"
+    : state.flare ? FLARE_PROGRESSION : PROGRAM[currentWeek].progression;
+  el.progression.innerHTML = "<b>Week " + currentWeek + "</b>" + escapeHtml(progression);
 
   const seq = buildSequence(currentWeek, currentDay);
   const workSets = seq.filter(s => s.kind === "work").length;
-  el.seqMeta.textContent = workSets + (workSets === 1 ? " set" : " sets");
+  el.seqMeta.textContent = hiitActive
+    ? seq.length + " intervals" : workSets + (workSets === 1 ? " set" : " sets");
 
   renderExerciseList(data);
   renderTabs();
@@ -1926,8 +2040,9 @@ function renderExerciseList(data){
       : formatClock(step.duration);
     meta.appendChild(pill);
 
-    const logged = readLog(step);
-    if(kind === "work"){
+    const canLog = kind === "work" && step.logLoad !== false;
+    const logged = canLog ? readLog(step) : null;
+    if(canLog){
       const last = document.createElement("span");
       last.className = "lastload";
       last.innerHTML = logged && logged.load
@@ -1939,7 +2054,7 @@ function renderExerciseList(data){
     btn.append(num, body, meta);
     row.appendChild(btn);
 
-    if(kind === "work"){
+    if(canLog){
       const logWrap = document.createElement("div");
       logWrap.className = "exrow__log";
       const input = document.createElement("input");
@@ -1986,8 +2101,10 @@ function writeLog(key, value){
 function renderStreak(){
   const n = blockDone();
   el.streak.hidden = n === 0;
-  el.streakCount.textContent = n + "/" + SLOTS.length;
-  el.streak.setAttribute("aria-label", n + " of " + SLOTS.length + " sessions done this block");
+  const total = programSlots().length;
+  el.streakCount.textContent = n + "/" + total;
+  el.streak.setAttribute("aria-label", n + " of " + total +
+    (hiitActive ? " HIIT sessions complete" : " sessions done this block"));
 }
 
 /* =================================================================== *
@@ -2007,6 +2124,7 @@ function showView(which){
 }
 
 function startWorkout(){
+  if(loadingProgram || running) return;
   unlockAudio();
   if(state.awayAlerts && pushSupported()) refreshPushSub(false).catch(()=>{});
   sequence = buildSequence(currentWeek, currentDay);
@@ -2016,16 +2134,22 @@ function startWorkout(){
   pausedRemaining = null;
   running = true;
   workoutStartedAt = Date.now();
+  hiitElapsedBeforeResume = 0;
+  hiitResumedAt = timerNow();
   creditedSets = new Set();
 
   setPauseButton(false);
   buildTimeline();
+  el.addLabel.textContent = hiitActive ? "Reset" : "15s";
+  el.addIcon.setAttribute("href", hiitActive ? "#i-prev" : "#i-plus");
+  el.addBtn.setAttribute("aria-label", hiitActive ? "Reset workout" : "Add 15 seconds");
   showView("active");
   acquireWakeLock();
 
   enterStep(0, true);
-  stepEndsAt = Date.now() + sequence[0].duration * 1000;
+  stepEndsAt = timerNow() + sequence[0].duration * 1000;
   startTicker();
+  if(hiitActive) el.pauseBtn.focus();
 }
 
 function startTicker(){
@@ -2040,23 +2164,28 @@ function stopTicker(){
 function tick(){
   if(!running || pausedRemaining !== null) return;
 
-  let remaining = stepEndsAt - Date.now();
+  const now = timerNow();
+  const previousIndex = stepIndex;
+  let latestTransition = stepEndsAt;
+  let remaining = stepEndsAt - now;
 
-  // Roll forward through any intervals that elapsed while we were away.
+  // Advance from the original deadlines when the browser delays timer callbacks.
   while(remaining <= 0){
     creditStep(stepIndex, 0);
     if(stepIndex >= sequence.length - 1){ finishWorkout(); return; }
-    const wasLive = remaining > -1500 && document.visibilityState === "visible";
     stepIndex++;
-    enterStep(stepIndex, wasLive);
+    latestTransition = stepEndsAt;
     stepEndsAt += sequence[stepIndex].duration * 1000;
-    remaining = stepEndsAt - Date.now();
+    remaining = stepEndsAt - now;
+  }
+  if(stepIndex !== previousIndex){
+    enterStep(stepIndex, now - latestTransition < 1500 && document.visibilityState === "visible");
   }
 
   paint(remaining);
 }
 
-function paint(remainingMs){
+function paint(remainingMs, announce = true){
   const step = sequence[stepIndex];
   const secs = Math.ceil(remainingMs / 1000);
 
@@ -2066,7 +2195,7 @@ function paint(remainingMs){
 
   // Countdown cues, fired once per whole second.
   if(secs !== lastAnnouncedSecond){
-    if(secs <= 3 && secs >= 1 && document.visibilityState === "visible"){
+    if(announce && secs <= 3 && secs >= 1 && document.visibilityState === "visible"){
       beep(660, 0.09, 0.09);
       if(secs === 1) buzz(30);
     }
@@ -2076,7 +2205,13 @@ function paint(remainingMs){
   // Total time left across the rest of the session.
   let left = remainingMs / 1000;
   for(let i = stepIndex + 1; i < sequence.length; i++) left += sequence[i].duration;
-  el.runLeft.textContent = formatClock(left) + " left";
+  const timeLeft = formatClock(left) + " left";
+  if(hiitActive){
+    el.sessionProgress.value = el.sessionProgress.max - left;
+    el.runLeft.textContent = formatClock(Math.floor(hiitElapsed() / 1000)) + " elapsed · " + timeLeft;
+  }else{
+    el.runLeft.textContent = timeLeft;
+  }
 }
 
 function enterStep(i, live){
@@ -2091,9 +2226,11 @@ function enterStep(i, live){
 
   el.phaseBadge.textContent = phase.label;
   el.stepName.textContent = step.name;
-  el.stepDesc.textContent = step.desc;
+  const load = step.logId ? state.logs[step.logId]?.load : "";
+  el.stepDesc.textContent = load ? step.desc + " · Load: " + load : step.desc;
   el.cueLabel.textContent = step.kind === "prime" ? "Coach's Cue" : "Back Protection Cue";
   el.cueText.textContent = step.safetyTip;
+  el.cue.hidden = hiitActive && !step.safetyTip;
   el.cueEffort.textContent = step.effort || "";
   el.cueEffort.hidden = !step.effort;
 
@@ -2109,7 +2246,9 @@ function enterStep(i, live){
   el.ringSub.textContent = step.kind === "rest" ? "until next set" : "remaining";
 
   // Meaningful position: exercises, not raw intervals.
-  if(step.kind === "work"){
+  if(hiitActive){
+    el.runCount.textContent = "Interval " + (i + 1) + " / " + sequence.length;
+  }else if(step.kind === "work"){
     let pos = "Exercise " + step.exIndex + " / " + step.exTotal;
     if(step.superset) pos += " · Superset " + step.superset;
     el.runCount.textContent = pos;
@@ -2119,9 +2258,10 @@ function enterStep(i, live){
     el.runCount.textContent = phase.label;
   }
 
-  // "Up next" during rest only.
-  if(step.kind === "rest" && i + 1 < sequence.length){
-    const nxt = sequence[i+1];
+  // HIIT shows the next exercise, looking past the recovery interval.
+  const nextIndex = hiitActive && sequence[i+1]?.kind === "rest" ? i + 2 : i + 1;
+  if((hiitActive || step.kind === "rest") && nextIndex < sequence.length){
+    const nxt = sequence[nextIndex];
     el.upnextTitle.textContent = nxt.setTotal > 1
       ? nxt.name + " — set " + nxt.setNum + " of " + nxt.setTotal
       : nxt.name;
@@ -2131,7 +2271,9 @@ function enterStep(i, live){
     el.upnext.hidden = true;
   }
 
-  el.prevLabel.textContent = i === 0 ? "Restart" : "Back";
+  el.prevLabel.textContent = hiitActive ? "Previous" : i === 0 ? "Restart" : "Back";
+  el.prevBtn.disabled = hiitActive && i === 0;
+  el.nextLabel.textContent = hiitActive && i === sequence.length - 1 ? "Finish" : "Skip";
   updateTimeline();
 
   if(live){
@@ -2148,6 +2290,13 @@ function enterStep(i, live){
 function buildTimeline(){
   el.timeline.innerHTML = "";
   const total = sequence.reduce((s,x)=>s + x.duration, 0);
+  el.timeline.hidden = hiitActive;
+  el.sessionProgress.hidden = !hiitActive;
+  if(hiitActive){
+    el.sessionProgress.max = total;
+    el.sessionProgress.value = 0;
+    return;
+  }
   sequence.forEach(step => {
     const seg = document.createElement("div");
     seg.className = "timeline__seg";
@@ -2172,13 +2321,19 @@ function setPauseButton(paused){
 
 function togglePause(){
   if(pausedRemaining === null){
-    pausedRemaining = Math.max(0, stepEndsAt - Date.now());
+    tick();
+    if(!running) return;
+    const now = timerNow();
+    if(hiitActive) hiitElapsedBeforeResume = hiitElapsed(now);
+    pausedRemaining = Math.max(0, stepEndsAt - now);
     setPauseButton(true);
     el.ringSub.textContent = "paused";
     releaseWakeLock();
     el.live.textContent = "Paused.";
   }else{
-    stepEndsAt = Date.now() + pausedRemaining;
+    const now = timerNow();
+    if(hiitActive) hiitResumedAt = now;
+    stepEndsAt = now + pausedRemaining;
     pausedRemaining = null;
     setPauseButton(false);
     el.ringSub.textContent = sequence[stepIndex].kind === "rest" ? "until next set" : "remaining";
@@ -2190,7 +2345,7 @@ function togglePause(){
 }
 
 function currentRemaining(){
-  return pausedRemaining !== null ? pausedRemaining : stepEndsAt - Date.now();
+  return pausedRemaining !== null ? pausedRemaining : stepEndsAt - timerNow();
 }
 
 function jumpTo(i){
@@ -2200,14 +2355,22 @@ function jumpTo(i){
   enterStep(i, true);
   const dur = sequence[i].duration * 1000;
   if(pausedRemaining !== null) pausedRemaining = dur;
-  else stepEndsAt = Date.now() + dur;
-  tick();
+  else stepEndsAt = timerNow() + dur;
+  if(pausedRemaining !== null){
+    el.ringSub.textContent = "paused";
+    paint(dur, false);
+  }else{
+    tick();
+  }
 }
 
 function goBack(){
   const step = sequence[stepIndex];
-  const elapsed = step.duration * 1000 -
-    (pausedRemaining !== null ? pausedRemaining : stepEndsAt - Date.now());
+  if(hiitActive){
+    jumpTo(stepIndex - 1);
+    return;
+  }
+  const elapsed = step.duration * 1000 - currentRemaining();
   // Restart the current interval if we're already a few seconds in.
   if(elapsed > 3000 || stepIndex === 0) jumpTo(stepIndex);
   else jumpTo(stepIndex - 1);
@@ -2220,6 +2383,14 @@ function goNext(){
     return;
   }
   jumpTo(stepIndex + 1);
+}
+
+function resetHiit(){
+  if(!confirm("Reset this workout to the beginning?")) return;
+  hiitElapsedBeforeResume = 0;
+  hiitResumedAt = timerNow();
+  jumpTo(0);
+  creditedSets.clear();
 }
 
 function addTime(){
@@ -2247,10 +2418,13 @@ function exitWorkout(){
  * 10. COMPLETION
  * =================================================================== */
 function finishWorkout(){
-  // Tapping Skip to the end shouldn't count toward the block, but sets done
-  // off the clock are real, so it's your call rather than a hard rule.
-  const counted = coverage() >= 0.5 ||
-    confirm("Most sets in this session were skipped. Count it as done anyway?");
+  const elapsedSec = hiitActive
+    ? Math.round(hiitElapsed(Math.min(timerNow(), stepEndsAt)) / 1000)
+    : Math.round((Date.now() - workoutStartedAt) / 1000);
+  // Allow users to count work they did off the clock after skipping ahead.
+  const counted = coverage() >= 0.5 || confirm(hiitActive
+    ? "Most work intervals were skipped. Count this session as done anyway?"
+    : "Most sets in this session were skipped. Count it as done anyway?");
   cancelAwayPushes();
   running = false;
   stopTicker();
@@ -2265,14 +2439,13 @@ function finishWorkout(){
 
   const isPrimerDay = currentDay === PRIMER_DAY;
   const key = isPrimerDay ? primerKey(currentWeek, primerCount(currentWeek) + 1)
-                          : doneKey(currentWeek, currentDay);
+                          : sessionKey(currentWeek, currentDay);
   if(counted && !state.completed[key]) state.completed[key] = todayISO();
-  state.week = currentWeek;
-  const finishedBlock = counted && blockIsComplete() ? state.block : 0;
+  if(!hiitActive) state.week = currentWeek;
+  const finishedBlock = !hiitActive && counted && blockIsComplete() ? state.block : 0;
   saveState();
 
   const data = dayData(currentWeek, currentDay);
-  const elapsedSec = Math.round((Date.now() - workoutStartedAt)/1000);
   const sets = sequence.filter(s => s.kind === "work").length;
 
   el.doneTitle.textContent = counted ? data.title + " Done" : "Session Not Counted";
@@ -2286,6 +2459,8 @@ function finishWorkout(){
       " starts now — every load you've logged carries over."
     : !counted
     ? "Mostly skipped, so it's still up next. Log anything you did do below."
+    : hiitActive
+    ? "Week " + currentWeek + " · " + sessionName(currentDay)
     : state.flare
     ? "Cranky Back Mode session done. Check how your back feels tomorrow morning before the next one."
     : "Block " + state.block + " · Week " + currentWeek + " · " +
@@ -2293,7 +2468,7 @@ function finishWorkout(){
       " — another session your back stayed happy through.";
   el.statTime.textContent = formatClock(elapsedSec);
   el.statSets.textContent = isPrimerDay ? "—" : sets;
-  el.statStreak.textContent = blockDone() + "/" + SLOTS.length;
+  renderCompletionProgress();
 
   buildLogForm(data);
 
@@ -2308,6 +2483,12 @@ function finishWorkout(){
   el.live.textContent = finishedBlock
     ? "Workout complete. Block " + finishedBlock + " finished."
     : "Workout complete.";
+  if(hiitActive) el.doneBtn.focus();
+}
+
+function renderCompletionProgress(){
+  el.statStreak.textContent = blockDone() + "/" + programSlots().length;
+  el.statProgressLabel.textContent = hiitActive ? "Program" : "Block";
 }
 
 /* No sync between devices: this just tells this phone a session happened
@@ -2330,7 +2511,8 @@ function markDoneElsewhere(){
     return;
   }
 
-  const key = doneKey(currentWeek, currentDay);
+  if(loadingProgram) return;
+  const key = sessionKey(currentWeek, currentDay);
   const label = sessionName(currentDay) + " (week " + currentWeek + ")";
 
   if(state.completed[key]){
@@ -2345,8 +2527,8 @@ function markDoneElsewhere(){
 
   if(!confirm("Mark " + label + " as done on another device?")) return;
   state.completed[key] = todayISO();
-  state.week = currentWeek;
-  const finishedBlock = blockIsComplete() ? state.block : 0;
+  if(!hiitActive) state.week = currentWeek;
+  const finishedBlock = !hiitActive && blockIsComplete() ? state.block : 0;
   saveState();
 
   const data = dayData(currentWeek, currentDay);
@@ -2357,7 +2539,7 @@ function markDoneElsewhere(){
     : "Done on another device. Add your loads below to keep your history current.";
   el.statTime.textContent = "—";
   el.statSets.textContent = buildSequence(currentWeek, currentDay).filter(s => s.kind === "work").length;
-  el.statStreak.textContent = blockDone() + "/" + SLOTS.length;
+  renderCompletionProgress();
 
   buildLogForm(data);
   if(finishedBlock) startNextBlock();
@@ -2367,7 +2549,7 @@ function markDoneElsewhere(){
 
 function buildLogForm(data){
   el.logform.innerHTML = "";
-  const mains = data.steps.filter(s => stepKind(s) === "work");
+  const mains = data.steps.filter(s => stepKind(s) === "work" && s.logLoad !== false);
   if(!mains.length){
     const p = document.createElement("p");
     p.className = "progression";
@@ -2405,6 +2587,7 @@ function saveLogsAndClose(){
   showView("overview");
   renderOverview();
   renderStreak();
+  if(hiitActive) el.dayTabs.querySelector('[aria-selected="true"]')?.focus();
   toast("Session saved");
 }
 
@@ -2417,6 +2600,7 @@ function openModal(){
   el.blockBtn.textContent = blockIsComplete()
     ? "Block " + state.block + " complete — start block " + (state.block + 1)
     : "Start block " + ((state.block || 1) + 1) + " early";
+  el.blockBtn.hidden = hiitActive;
   renderAwayBtn();
   lastFocused = document.activeElement;
   el.modal.hidden = false;
@@ -2566,7 +2750,7 @@ function notifyText(step, next){
 /* Every interval change still ahead, stamped with when it happens. */
 function awayTimeline(){
   const events = [];
-  let at = stepEndsAt;
+  let at = Date.now() + (stepEndsAt - timerNow());
   for(let i = stepIndex + 1; i < sequence.length; i++){
     events.push(Object.assign({ at }, notifyText(sequence[i], sequence[i + 1])));
     at += sequence[i].duration * 1000;
@@ -2674,6 +2858,7 @@ el.flareBtn.addEventListener("click", () => {
   toast(state.flare ? "Cranky Back Mode on" : "Back to the full program");
 });
 
+el.programSelect.addEventListener("change", selectProgram);
 el.startBtn.addEventListener("click", startWorkout);
 el.elsewhereBtn.addEventListener("click", markDoneElsewhere);
 
@@ -2685,7 +2870,7 @@ el.exitBtn.addEventListener("click", () => {
 el.pauseBtn.addEventListener("click", togglePause);
 el.prevBtn.addEventListener("click", goBack);
 el.nextBtn.addEventListener("click", goNext);
-el.addBtn.addEventListener("click", addTime);
+el.addBtn.addEventListener("click", () => hiitActive ? resetHiit() : addTime());
 
 function renderSoundBtn(){
   const m = SOUND_MODES[state.soundMode];
@@ -2738,6 +2923,7 @@ el.resetBtn.addEventListener("click", () => {
 document.addEventListener("keydown", e => {
   if(!running || !el.modal.hidden) return;
   if(e.target.tagName === "INPUT") return;
+  if(hiitActive && e.code === "Space" && e.target.closest("button")) return;
   if(e.code === "Space"){ e.preventDefault(); togglePause(); }
   if(e.key === "ArrowRight"){ e.preventDefault(); goNext(); }
   if(e.key === "ArrowLeft"){ e.preventDefault(); goBack(); }
@@ -2764,7 +2950,7 @@ document.addEventListener("visibilitychange", () => {
   cancelAwayPushes();
   acquireWakeLock();
   tick();
-  if(audioAsleep()) promptForTap();
+  if(running && audioAsleep()) promptForTap();
 });
 
 window.addEventListener("pagehide", releaseWakeLock);
@@ -2782,6 +2968,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
 loadState();
 migrateBlocks();
 migratePlan();
+el.programSelect.value = "strength";
 goToNextUp();
 
 renderSoundBtn();

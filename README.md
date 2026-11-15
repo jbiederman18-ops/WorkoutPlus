@@ -1,6 +1,6 @@
 # SpineSafe Recomp — deploy bundle
 
-Everything here is static. No build step, no dependencies, no network calls.
+The app is static and runs without a build step or runtime dependencies.
 
 ## Deploy to GitHub Pages
 
@@ -45,7 +45,8 @@ If any of your other apps use a generic localStorage key like `state` or
 
 | File | Purpose |
 |---|---|
-| `index.html` | The entire app. Self-contained. |
+| `index.html` | App screens, strength program, and workout timer. |
+| `hiit-program.json` | Four weeks of Dumbbell HIIT with pre-expanded timer intervals. |
 | `.nojekyll` | Stops GitHub Pages running Jekyll over the files. |
 | `manifest.webmanifest` | Android/desktop install metadata. iOS ignores it. |
 | `sw.js` | Offline cache. Bump `CACHE` whenever you edit `index.html`. |
@@ -54,7 +55,19 @@ If any of your other apps use a generic localStorage key like `state` or
 | `splash-*.png` | iOS launch images. Without them you get a white flash. |
 | `favicon-32.png` | Browser tab icon. |
 
-## After editing index.html
+## Run and test Dumbbell HIIT locally
+
+Run `python3 -m http.server 8000` from the repository root, then open
+`http://localhost:8000`. Choose **Program → 4-Week Dumbbell HIIT** and select
+a week and a session. Start the routine, pause and resume, skip an interval,
+go back, and reset. Finish the last interval and save. After reloading, select
+Dumbbell HIIT again to see the completion mark. Progress is stored on the
+current device.
+
+Run `node --test tests/hiit-program.test.cjs` to validate the session IDs,
+schedule, exercise order, and every interval duration.
+
+## After editing index.html or hiit-program.json
 
 Change the `CACHE` constant in `sw.js` (`spinesafe-v2` -> `spinesafe-v3`) and
 push. Otherwise the old cached copy keeps being served. GitHub Pages also puts

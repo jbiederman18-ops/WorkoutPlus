@@ -7,11 +7,12 @@ importScripts("push-sw.js");   // away alerts: push + notification handling
  *
  * Bump CACHE whenever you edit index.html, or the old copy will stick around.
  */
-const CACHE  = "spinesafe-v10";
+const CACHE  = "spinesafe-v11";
 const PREFIX = "spinesafe-";   // only ever touch our own caches
 const ASSETS = [
   "./",
   "./index.html",
+  "./hiit-program.json",
   "./apple-touch-icon.png",
   "./favicon-180.png",
   "./favicon-32.png",

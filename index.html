@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SpineSafe Recomp — 4-Week Program</title>
+<title>WorkoutPlus — 4-Week Program</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SpineSafe">
+<meta name="apple-mobile-web-app-title" content="WorkoutPlus">
 <meta id="theme-color" name="theme-color" content="#16212B">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
@@ -35,7 +35,7 @@
 
 <style>
 /* =================================================================== *
- * SpineSafe — "Cross-Training Tape, 1994"
+ * WorkoutPlus — "Cross-Training Tape, 1994"
  * Ground: bright paper. Color encodes the day type and the phase.
  * Everything sits on hard 2px ink rules with offset block shadows,
  * the way a printed VHS sleeve or a gym vinyl decal would.
@@ -811,7 +811,7 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
       <div class="program-picker">
         <label class="eyebrow" for="program-select">Program</label>
         <select id="program-select" class="field">
-          <option value="strength">SpineSafe Recomp</option>
+          <option value="strength">Strength Recomp</option>
           <option value="hiit">4-Week Dumbbell HIIT</option>
         </select>
       </div>
@@ -1203,7 +1203,8 @@ const PHASES = {
 /* =================================================================== *
  * 2. PERSISTENCE
  * =================================================================== */
-const STORE_KEY = "spinesafe.v2";
+const STORE_KEY = "workoutplus.v2";
+const LEGACY_STORE_KEY = "spinesafe.v2";   // pre-rename saves, copied over once
 
 const defaultState = () => ({
   week:1,
@@ -1326,7 +1327,15 @@ let state = defaultState();
 
 function loadState(){
   try{
-    const raw = localStorage.getItem(STORE_KEY);
+    let raw = localStorage.getItem(STORE_KEY);
+    // One-time move from the SpineSafe-era key. The old copy is only removed
+    // once the new key has been written, so nothing is lost if storage fails.
+    const legacy = raw ? null : localStorage.getItem(LEGACY_STORE_KEY);
+    if(legacy){
+      localStorage.setItem(STORE_KEY, legacy);
+      if(localStorage.getItem(STORE_KEY) === legacy) localStorage.removeItem(LEGACY_STORE_KEY);
+      raw = legacy;
+    }
     if(raw){
       const saved = JSON.parse(raw);
       state = Object.assign(defaultState(), saved);
@@ -2644,8 +2653,10 @@ function toast(msg){
  * worker (push-sw.js) reads the labels from the timeline saved here and
  * shows the one that matches the moment the push lands.
  * =================================================================== */
-const PUSH_URL = "https://workoutplus.jbiederman18.workers.dev";   // your Worker, e.g. "https://spinesafe-push.YOURNAME.workers.dev"
-const PUSH_DB = "spinesafe-push";
+const PUSH_URL = "https://workoutplus.jbiederman18.workers.dev";   // your Worker, e.g. "https://workoutplus.YOURNAME.workers.dev"
+const PUSH_DB = "workoutplus-push";
+// The SpineSafe-era store only ever held a throwaway timeline.
+try{ indexedDB.deleteDatabase("spinesafe-push"); }catch(e){}
 let pushSub = null;         // cached { endpoint }, so the hide handler needs no awaits
 let pushScheduled = false;
 
@@ -2757,7 +2768,7 @@ function awayTimeline(){
     events.push(Object.assign({ at }, notifyText(sequence[i], sequence[i + 1])));
     at += sequence[i].duration * 1000;
   }
-  events.push({ at, title:"Workout complete", body:"Open SpineSafe to log your loads." });
+  events.push({ at, title:"Workout complete", body:"Open WorkoutPlus to log your loads." });
   return events;
 }
 
@@ -2792,13 +2803,13 @@ async function toggleAwayAlerts(){
     return;
   }
   if(!pushSupported()){
-    toast("Open SpineSafe from your Home Screen first");
+    toast("Open WorkoutPlus from your Home Screen first");
     return;
   }
   try{
     // The permission prompt has to come straight from this tap.
     const perm = await Notification.requestPermission();
-    if(perm !== "granted"){ toast("Notifications are off for SpineSafe"); return; }
+    if(perm !== "granted"){ toast("Notifications are off for WorkoutPlus"); return; }
     await refreshPushSub(true);
     if(!pushSub) throw new Error("no subscription");
     state.awayAlerts = true;

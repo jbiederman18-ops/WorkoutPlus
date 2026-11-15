@@ -1,4 +1,4 @@
-# SpineSafe Recomp — deploy bundle
+# WorkoutPlus — deploy bundle
 
 The app is static and runs without a build step or runtime dependencies.
 
@@ -17,7 +17,7 @@ The `.nojekyll` file is intentional — it tells Pages to skip Jekyll processing
 and serve these files verbatim. Don't delete it.
 
 Every path in `index.html` is relative, so the app works both at
-`username.github.io` (user site) and `username.github.io/spinesafe/`
+`username.github.io` (user site) and `username.github.io/WorkoutPlus/`
 (project site) with no changes.
 
 ## Sharing an origin with your other apps
@@ -26,9 +26,9 @@ All your project sites live on the same origin, `username.github.io`. They
 share localStorage, the Cache API, and service worker registrations. This app
 is namespaced to stay out of their way:
 
-- localStorage key: `spinesafe.v2`
-- Cache name: `spinesafe-v2`, and the service worker only ever deletes caches
-  beginning `spinesafe-`
+- localStorage key: `workoutplus.v2` (older `spinesafe.v2` saves are copied over once)
+- Cache name: `workoutplus-v12`, and the service worker only ever deletes caches
+  beginning `workoutplus-` (plus leftover `spinesafe-` caches from before the rename)
 - Service worker scope: limited to this app's own folder
 
 If any of your other apps use a generic localStorage key like `state` or
@@ -69,7 +69,7 @@ schedule, exercise order, and every interval duration.
 
 ## After editing index.html or hiit-program.json
 
-Change the `CACHE` constant in `sw.js` (`spinesafe-v2` -> `spinesafe-v3`) and
+Change the `CACHE` constant in `sw.js` (`workoutplus-v12` -> `workoutplus-v13`) and
 push. Otherwise the old cached copy keeps being served. GitHub Pages also puts
 a 10-minute cache on assets, so give it a moment before assuming a change
 didn't land — and test offline mode with the phone off Wi-Fi.

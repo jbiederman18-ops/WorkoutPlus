@@ -1,4 +1,4 @@
-/* SpineSafe away alerts — push handling for the service worker.
+/* WorkoutPlus away alerts — push handling for the service worker.
  *
  * Pulled into sw.js with one line at the very top of that file:
  *     importScripts("push-sw.js");
@@ -10,8 +10,8 @@
  */
 (function(){
   "use strict";
-  const DB = "spinesafe-push";
-  const TAG = "spinesafe-timer";   // each alert replaces the last one
+  const DB = "workoutplus-push";
+  const TAG = "workoutplus-timer";   // each alert replaces the last one
   const EARLY_MS = 3000;           // a push can land a moment before its interval
 
   function readTimeline(){
@@ -45,7 +45,7 @@
     event.waitUntil((async () => {
       const ev = pick(await readTimeline(), Date.now());
       await self.registration.showNotification(
-        ev ? ev.title : "SpineSafe",
+        ev ? ev.title : "WorkoutPlus",
         {
           body: ev ? ev.body : "Your workout timer moved on. Tap to jump back in.",
           tag: TAG,

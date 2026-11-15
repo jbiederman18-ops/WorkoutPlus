@@ -1,6 +1,6 @@
-# SpineSafe away alerts — setup
+# WorkoutPlus away alerts — setup
 
-When you leave SpineSafe mid-workout, this Worker sends a notification at
+When you leave WorkoutPlus mid-workout, this Worker sends a notification at
 every interval change. Coming back to the app cancels the rest. No secrets
 to manage: the Worker makes its own push keys on first use.
 
@@ -18,10 +18,10 @@ You need Node 18 or newer and a free Cloudflare account.
    npx wrangler login
    npx wrangler deploy
    ```
-3. Deploy prints a URL like `https://spinesafe-push.yourname.workers.dev`.
+3. Deploy prints a URL like `https://workoutplus.yourname.workers.dev`.
    Open `<that URL>/vapid` in a browser. You should see `{"publicKey":"B..."}`.
 
-## 2. Update the app (in your SpineSafe repo)
+## 2. Update the app (in your WorkoutPlus repo)
 
 1. In `index.html`, find `const PUSH_URL = "";` and paste the Worker URL
    between the quotes (no trailing slash).
@@ -35,7 +35,7 @@ You need Node 18 or newer and a free Cloudflare account.
 
 ## 3. Turn it on (on the iPhone)
 
-1. Open SpineSafe **from the Home Screen icon**. iOS only offers
+1. Open WorkoutPlus **from the Home Screen icon**. iOS only offers
    notifications to installed web apps, not Safari tabs.
 2. Tap the ⓘ button → **Turn on away alerts** → **Allow**.
 3. Test: start a session, wait a few seconds, swipe to another app. The
@@ -49,7 +49,7 @@ You need Node 18 or newer and a free Cloudflare account.
 - **"Couldn't reach the alert server"**: check `PUSH_URL`, and that
   `<URL>/vapid` loads.
 - **No notifications arrive**: look at the Worker's logs in the Cloudflare
-  dashboard (Workers → spinesafe-push → Logs) while you test. A 403 from
+  dashboard (Workers → workoutplus → Logs) while you test. A 403 from
   Apple usually means `VAPID_SUBJECT` still has the placeholder.
 - **Notifications stopped after a reinstall**: re-tap Turn on away alerts.
   Removing the Home Screen app drops its subscription.

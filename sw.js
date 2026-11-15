@@ -1,14 +1,15 @@
 importScripts("push-sw.js");   // away alerts: push + notification handling
 
-/* SpineSafe service worker.
+/* WorkoutPlus service worker.
  * Optional: index.html works fine without it, but dropping this file
  * alongside index.html on a real host (Netlify, GitHub Pages) makes the
  * installed app genuinely offline-capable.
  *
  * Bump CACHE whenever you edit index.html, or the old copy will stick around.
  */
-const CACHE  = "spinesafe-v11";
-const PREFIX = "spinesafe-";   // only ever touch our own caches
+const CACHE  = "workoutplus-v12";
+const PREFIX = "workoutplus-";   // only ever touch our own caches
+const LEGACY_PREFIX = "spinesafe-";   // caches from before the rename
 const ASSETS = [
   "./",
   "./index.html",
@@ -49,7 +50,7 @@ self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => k.startsWith(PREFIX) && k !== CACHE)
+        keys.filter(k => (k.startsWith(PREFIX) || k.startsWith(LEGACY_PREFIX)) && k !== CACHE)
             .map(k => caches.delete(k))
       ))
       .then(() => self.clients.claim())

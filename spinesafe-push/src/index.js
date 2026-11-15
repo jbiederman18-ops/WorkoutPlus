@@ -1,4 +1,4 @@
-/* SpineSafe push server — a Cloudflare Worker.
+/* WorkoutPlus push server — a Cloudflare Worker.
  *
  *   GET  /vapid     → { publicKey }  the key the app subscribes with
  *   POST /schedule  { id, subscription:{endpoint}, times:[ms, ...] }
@@ -54,7 +54,7 @@ const keyStore = env => env.TIMER.get(env.TIMER.idFromName("__vapid"));
 async function sendPush(env, endpoint){
   const keys = await keyStore(env).vapidKeys();
   const jwt = await vapidJwt(keys.privateJwk, new URL(endpoint).origin,
-    env.VAPID_SUBJECT || "mailto:spinesafe@example.com");
+    env.VAPID_SUBJECT || "mailto:workoutplus@example.com");
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {

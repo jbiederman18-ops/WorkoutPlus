@@ -7,7 +7,7 @@ importScripts("push-sw.js");   // away alerts: push + notification handling
  *
  * Bump CACHE whenever you edit index.html, or the old copy will stick around.
  */
-const CACHE  = "workoutplus-v14";
+const CACHE  = "workoutplus-v15";
 const PREFIX = "workoutplus-";   // only ever touch our own caches
 const LEGACY_PREFIX = "spinesafe-";   // caches from before the rename
 const ASSETS = [
@@ -41,7 +41,9 @@ const ASSETS = [
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(ASSETS))
+      // "reload" skips the browser's HTTP cache, which GitHub Pages fills for
+      // 10 minutes, so a new version never precaches the previous index.html.
+      .then(c => c.addAll(ASSETS.map(url => new Request(url, { cache:"reload" }))))
       .then(() => self.skipWaiting())
   );
 });
@@ -63,8 +65,12 @@ self.addEventListener("fetch", event => {
   if(event.request.method !== "GET") return;
   // Leave other sites alone, including the away-alerts Worker.
   if(new URL(event.request.url).origin !== self.location.origin) return;
+  // "no-cache" revalidates with GitHub Pages instead of reusing its 10-minute
+  // HTTP cache, so a push shows up on the next open, not ten minutes later.
+  const fresh = fetch(event.request.url, { cache:"no-cache", credentials:"same-origin" })
+    .then(res => res.redirected ? fetch(event.request) : res);
   event.respondWith(
-    fetch(event.request)
+    fresh
       .then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(event.request, copy)).catch(()=>{});

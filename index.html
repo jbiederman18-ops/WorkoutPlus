@@ -1824,7 +1824,9 @@ let lastAnnouncedSecond = -1;
 let workoutStartedAt = 0;  // legacy wall-clock time for strength sessions
 let hiitElapsedBeforeResume = 0;
 let hiitResumedAt = 0;
-const timerNow = () => hiitActive ? performance.now() : Date.now();
+/* Wall-clock on purpose: performance.now() can stall while a phone sleeps,
+   which would drift the timer away from the away-alert push schedule. */
+const timerNow = () => Date.now();
 const hiitElapsed = (now = timerNow()) => hiitElapsedBeforeResume +
   (pausedRemaining === null ? now - hiitResumedAt : 0);
 let creditedSets = new Set();   // work intervals actually trained, by index

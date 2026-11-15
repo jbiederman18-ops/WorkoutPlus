@@ -27,7 +27,7 @@ share localStorage, the Cache API, and service worker registrations. This app
 is namespaced to stay out of their way:
 
 - localStorage key: `workoutplus.v2` (older `spinesafe.v2` saves are copied over once)
-- Cache name: `workoutplus-v15`, and the service worker only ever deletes caches
+- Cache name: `workoutplus-v16`, and the service worker only ever deletes caches
   beginning `workoutplus-` (plus leftover `spinesafe-` caches from before the rename)
 - Service worker scope: limited to this app's own folder
 
@@ -77,7 +77,7 @@ schedule, exercise order, and every interval duration.
 
 ## After editing index.html or hiit-program.json
 
-Change the `CACHE` constant in `sw.js` (`workoutplus-v15` -> `workoutplus-v16`) and
+Change the `CACHE` constant in `sw.js` (`workoutplus-v16` -> `workoutplus-v17`) and
 push. Otherwise the old cached copy keeps being served. GitHub Pages also puts
 a 10-minute cache on assets, so give it a moment before assuming a change
 didn't land — and test offline mode with the phone off Wi-Fi.

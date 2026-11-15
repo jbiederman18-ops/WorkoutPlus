@@ -154,7 +154,7 @@ body.is-running .topbar{display:none}
   transform:rotate(-4deg);
   font-size:19px;
 }
-.brand{min-width:0}
+.brand{flex:1 1 auto;min-width:0}
 .brand .wordmark{
   font-family:var(--display);font-weight:900;text-transform:uppercase;
   /* WORKOUTPLUS is wider than the old name, so it shrinks on narrow phones
@@ -167,9 +167,11 @@ body.is-running .topbar{display:none}
 .brand .wordmark em{font-style:normal;color:var(--magenta)}
 .brand p{
   margin:3px 0 0;font-size:9.5px;font-weight:800;
-  letter-spacing:.15em;text-transform:uppercase;color:rgba(242,244,240,.6);
+  /* One line: a wrapped subtitle made the whole header taller. */
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  letter-spacing:.1em;text-transform:uppercase;color:rgba(242,244,240,.6);
 }
-.topbar__spacer{flex:1}
+.topbar__spacer{flex:0 1 0}
 
 .streak{
   display:flex;align-items:center;gap:5px;
@@ -196,7 +198,7 @@ main{flex:1;display:flex;flex-direction:column;padding:0 16px}
 /* =================================================================== *
  * Tabs
  * =================================================================== */
-.selector{padding-top:16px}
+.selector{padding-top:6px}
 .selector__head{display:flex;align-items:center;gap:9px;margin-bottom:7px}
 .eyebrow{
   font-family:var(--display);font-size:13px;letter-spacing:.06em;
@@ -323,7 +325,7 @@ main{flex:1;display:flex;flex-direction:column;padding:0 16px}
 /* --- Cranky Back Mode toggle --------------------------------------- */
 .flare{
   width:100%;display:flex;align-items:center;gap:11px;
-  margin:16px 0 12px;padding:10px 12px;
+  margin:14px 0 0;padding:10px 12px;
   border:2px solid var(--ink);background:var(--paper-2);
   text-align:left;
   transition:background .15s,transform .08s,box-shadow .12s;
@@ -416,7 +418,7 @@ main{flex:1;display:flex;flex-direction:column;padding:0 16px}
   font-size:16px;font-weight:600;
   -webkit-user-select:text;user-select:text;
 }
-.program-picker{display:grid;gap:5px;margin-bottom:12px}
+.program-picker{display:grid;gap:5px;margin:14px 0 10px}
 .flare[hidden],.cue[hidden]{display:none}
 .program-picker label{color:var(--ink)}
 .program-picker select{min-height:44px}
@@ -426,7 +428,8 @@ main{flex:1;display:flex;flex-direction:column;padding:0 16px}
 /* --- Sticky CTA ------------------------------------------------------ */
 .cta-dock{
   position:sticky;bottom:0;z-index:20;margin-top:auto;
-  padding:14px 0 calc(16px + var(--safe-b));
+  /* The home-indicator inset already leaves room below; no extra on top of it. */
+  padding:10px 0 max(10px, calc(var(--safe-b) - 6px));
   background:linear-gradient(to top,var(--paper) 66%,transparent);
 }
 body.is-running .cta-dock{background:none}
@@ -699,7 +702,7 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
   color:var(--ink-60);text-decoration:underline;text-underline-offset:3px;
 }
 .linkbtn:hover{color:var(--teal)}
-.cta-dock .linkbtn{display:block;margin:10px auto 0;min-height:32px}
+.cta-dock .linkbtn{display:block;margin:4px auto 0;min-height:32px}
 
 /* --- Toast ---------------------------------------------------------- */
 .toast{

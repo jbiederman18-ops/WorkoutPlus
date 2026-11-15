@@ -27,7 +27,7 @@ share localStorage, the Cache API, and service worker registrations. This app
 is namespaced to stay out of their way:
 
 - localStorage key: `workoutplus.v2` (older `spinesafe.v2` saves are copied over once)
-- Cache name: `workoutplus-v12`, and the service worker only ever deletes caches
+- Cache name: `workoutplus-v13`, and the service worker only ever deletes caches
   beginning `workoutplus-` (plus leftover `spinesafe-` caches from before the rename)
 - Service worker scope: limited to this app's own folder
 
@@ -55,6 +55,14 @@ If any of your other apps use a generic localStorage key like `state` or
 | `splash-*.png` | iOS launch images. Without them you get a white flash. |
 | `favicon-32.png` | Browser tab icon. |
 
+## Backing up your data
+
+Everything is saved on the device, and removing the Home Screen app deletes
+it. Open the ⓘ panel and tap **Back up my data** to save a
+`workoutplus-backup-YYYY-MM-DD.json` file (on iPhone, pick **Save to Files**).
+**Restore from a backup** loads that file onto any device and replaces what's
+saved there. Away-alert settings stay with each device.
+
 ## Run and test Dumbbell HIIT locally
 
 Run `python3 -m http.server 8000` from the repository root, then open
@@ -69,7 +77,7 @@ schedule, exercise order, and every interval duration.
 
 ## After editing index.html or hiit-program.json
 
-Change the `CACHE` constant in `sw.js` (`workoutplus-v12` -> `workoutplus-v13`) and
+Change the `CACHE` constant in `sw.js` (`workoutplus-v13` -> `workoutplus-v14`) and
 push. Otherwise the old cached copy keeps being served. GitHub Pages also puts
 a 10-minute cache on assets, so give it a moment before assuming a change
 didn't land — and test offline mode with the phone off Wi-Fi.

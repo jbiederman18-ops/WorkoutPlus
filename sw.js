@@ -7,7 +7,7 @@ importScripts("push-sw.js");   // away alerts: push + notification handling
  *
  * Bump CACHE whenever you edit index.html, or the old copy will stick around.
  */
-const CACHE  = "workoutplus-v12";
+const CACHE  = "workoutplus-v13";
 const PREFIX = "workoutplus-";   // only ever touch our own caches
 const LEGACY_PREFIX = "spinesafe-";   // caches from before the rename
 const ASSETS = [

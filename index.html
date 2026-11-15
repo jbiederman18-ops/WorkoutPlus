@@ -1009,6 +1009,9 @@ body.is-running .view-active-wrap{color:var(--on-phase)}
       <button id="modal-ok" class="btn">Got It</button>
       <button id="away-btn" class="linkbtn" type="button" hidden>Turn on away alerts</button>
       <button id="block-btn" class="linkbtn">Start next block</button>
+      <button id="backup-btn" class="linkbtn" type="button">Back up my data</button>
+      <button id="restore-btn" class="linkbtn" type="button">Restore from a backup</button>
+      <input id="restore-file" type="file" accept=".json,application/json" hidden>
       <button id="reset-btn" class="dangerlink">Reset all saved progress</button>
     </div>
   </div>
@@ -1652,6 +1655,9 @@ const el = {
   blockBtn: $("block-btn"),
   awayBtn:  $("away-btn"),
   resetBtn: $("reset-btn"),
+  backupBtn:$("backup-btn"),
+  restoreBtn:$("restore-btn"),
+  restoreFile:$("restore-file"),
   toast:    $("toast"),
   themeColor:$("theme-color")
 };
@@ -2921,8 +2927,95 @@ el.blockBtn.addEventListener("click", () => {
   toast("Block " + state.block + " started");
 });
 
+/* =================================================================== *
+ * BACKUP & RESTORE
+ * Everything lives in this phone's storage, and removing the Home Screen
+ * app deletes it. A backup is that saved state as a JSON file you keep in
+ * Files, iCloud Drive or email, and can load back onto any device.
+ * =================================================================== */
+const BACKUP_APP = "WorkoutPlus";
+
+async function backupData(){
+  saveState();
+  const payload = JSON.stringify(
+    { app:BACKUP_APP, version:1, exportedAt:new Date().toISOString(), state }, null, 2);
+  const name = "workoutplus-backup-" + todayISO() + ".json";
+  const file = new File([payload], name, { type:"application/json" });
+  // The share sheet is the reliable route on iPhone: Save to Files, AirDrop, Mail.
+  if(navigator.canShare && navigator.canShare({ files:[file] })){
+    try{
+      await navigator.share({ files:[file], title:"WorkoutPlus backup" });
+      toast("Backup saved");
+      return;
+    }catch(e){
+      if(e && e.name === "AbortError") return;   // closed the share sheet
+    }
+  }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  toast("Backup downloaded");
+}
+
+function restoreFromText(text){
+  let parsed = null;
+  try{ parsed = JSON.parse(text); }catch(e){ /* handled below */ }
+  const saved = parsed && parsed.app === BACKUP_APP ? parsed.state : null;
+  const isObj = v => v && typeof v === "object" && !Array.isArray(v);
+  if(!isObj(saved) || !isObj(saved.completed) || !isObj(saved.logs)){
+    toast("That file isn't a WorkoutPlus backup");
+    return false;
+  }
+  const sessions = Object.keys(saved.completed).length;
+  const loads = Object.keys(saved.logs).length;
+  const when = parsed.exportedAt ? " from " + new Date(parsed.exportedAt).toLocaleDateString() : "";
+  if(!confirm("Restore the backup" + when + "? It has " + sessions +
+      (sessions === 1 ? " completed session" : " completed sessions") + " and " + loads +
+      (loads === 1 ? " logged load" : " logged loads") +
+      ", and replaces everything currently saved on this device.")) return false;
+  // Away alerts depend on this device's notification permission, so keep its own.
+  const keep = { awayAlerts:state.awayAlerts, pushId:state.pushId };
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(Object.assign({}, saved, keep)));
+  }catch(e){
+    toast("Couldn't save the backup on this device");
+    return false;
+  }
+  loadState();
+  migrateBlocks();
+  migratePlan();
+  closeModal();
+  goToNextUp();
+  renderSoundBtn();
+  buildTabs();
+  renderOverview();
+  renderStreak();
+  toast("Backup restored");
+  return true;
+}
+
+el.backupBtn.addEventListener("click", () => {
+  backupData().catch(() => toast("Couldn't create the backup"));
+});
+el.restoreBtn.addEventListener("click", () => {
+  if(running){ toast("Finish or end the workout first"); return; }
+  el.restoreFile.click();
+});
+el.restoreFile.addEventListener("change", async () => {
+  const file = el.restoreFile.files && el.restoreFile.files[0];
+  el.restoreFile.value = "";   // so picking the same file again still fires
+  if(!file) return;
+  try{ restoreFromText(await file.text()); }
+  catch(e){ toast("Couldn't read that file"); }
+});
+
 el.resetBtn.addEventListener("click", () => {
-  if(!confirm("Clear all completed sessions and logged loads? This can't be undone.")) return;
+  if(!confirm("Clear all completed sessions and logged loads? This can't be undone unless you have a backup.")) return;
   state = defaultState();
   saveState();
   closeModal();
